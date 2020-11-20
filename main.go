@@ -1,16 +1,29 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"github.com/bCoder778/log"
 	"github.com/bCoder778/qitmeer-sync/config"
 	"github.com/bCoder778/qitmeer-sync/sync"
-	"net/http"
+	"github.com/bCoder778/qitmeer-sync/version"
 	_ "net/http/pprof"
+	"os"
 	"runtime"
+	"runtime/debug"
 )
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
+	debug.SetGCPercent(20)
+
+	v := flag.Bool("v", false, "show bin info")
+	flag.Parse()
+	if *v {
+		_, _ = fmt.Fprint(os.Stderr, version.StringifyMultiLine())
+		os.Exit(1)
+	}
+
 	log.SetOption(&log.Option{
 		LogLevel: config.Setting.Log.Level,
 		Mode:     config.Setting.Log.Mode,
@@ -23,7 +36,6 @@ func main() {
 		},
 	})
 
-	go http.ListenAndServe("0.0.0.0:8000", nil)
 	sync, err := sync.NewQitmeerSync()
 	if err != nil {
 		log.Errorf("Create qitmeer sync failed! %v", err)
