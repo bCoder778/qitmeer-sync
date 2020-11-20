@@ -31,15 +31,8 @@ func dealCommand() {
 		os.Exit(1)
 	}
 	if *c {
-		db, err := db.ConnectDB(config.Setting)
-		if err != nil {
-			fmt.Printf("Connect db filed! %s\n", err)
-		}
-		if err := db.Clear(); err != nil {
-			fmt.Printf("Clear db failed! %s\n", err)
-		}
-		fmt.Println("Clear db success!")
-		db.Close()
+		clearData()
+		os.Exit(1)
 	}
 }
 
@@ -61,4 +54,30 @@ func runSync() {
 		log.Errorf("Create qitmeer sync failed! %v", err)
 	}
 	sync.Run()
+}
+
+func clearData() {
+	fmt.Println("Are you sure you want to clear all data?(y/n)")
+	readBytes := [10]byte{}
+	_, err := os.Stdin.Read(readBytes[:])
+	if err != nil {
+		fmt.Println("Failed to read input, ", err.Error())
+		os.Exit(1)
+	}
+	rs := string(readBytes[:1])
+	switch rs {
+	case "y":
+		fallthrough
+	case "Y":
+		fmt.Println("Start to clear db data...")
+		db, err := db.ConnectDB(config.Setting)
+		if err != nil {
+			fmt.Printf("Connect db filed! %s\n", err)
+		}
+		if err := db.Clear(); err != nil {
+			fmt.Printf("Clear db failed! %s\n", err)
+		}
+		fmt.Println("Clear db success!")
+		db.Close()
+	}
 }
