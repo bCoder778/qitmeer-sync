@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/bCoder778/qitmeer-sync/rpc"
 	"github.com/bCoder778/qitmeer-sync/storage/types"
-	"github.com/bCoder778/qitmeer-sync/verify"
+	"github.com/bCoder778/qitmeer-sync/verify/stat"
 )
 
 type blockData struct {
@@ -20,11 +20,7 @@ type transactionData struct {
 
 func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
 	if rpcBlock.Order != 0 {
-		utxo := s.db.GetAllUtxo()
-		count := s.db.GetConfirmedBlockCount()
-		if ok, err := s.verify.VerifyAllAccount(uint64(utxo), count); !ok {
-			return err
-		}
+
 	}
 
 	block := s.crateBlock(rpcBlock)
@@ -51,7 +47,7 @@ func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order uint64, color in
 	return s.db.UpdateTransactionDatas(txData.Transactions, txData.Vinouts, txData.SpentedVouts)
 }
 
-func (s *Storage) UpdateTransactionStat(txId string, stat verify.TxStat) error {
+func (s *Storage) UpdateTransactionStat(txId string, stat stat.TxStat) error {
 	txs, err := s.db.QueryTransactions(txId)
 	if err != nil {
 		return err
@@ -105,7 +101,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 	spentedVouts := []*types.Vinout{}
 
 	for _, rpcTx := range rpcTxs {
-		stat := s.verify.TransactionStat(&rpcTx, color)
+		status := s.verify.TransactionStat(&rpcTx, color)
 		var totalVin, totalVout, fees uint64
 		for index, vin := range rpcTx.Vin {
 			var (
@@ -121,10 +117,10 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 					return nil, fmt.Errorf("query txid%s, vout=%d failed!", vin.Txid, vin.Vout)
 				}
 				// 添加需要更新的被花费vout
-				if stat == verify.TX_Confirmed {
+				if status == stat.TX_Confirmed {
 					vout.SpentTx = rpcTx.Txid
 					vout.SpentNumber = index
-				} else if stat == verify.TX_Unconfirmed || stat == verify.TX_Memry {
+				} else if status == stat.TX_Unconfirmed || status == stat.TX_Memry {
 					vout.UnconfirmedSpentTx = rpcTx.Txid
 					vout.UnconfirmedSpentNumber = index
 				}
@@ -139,7 +135,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 					TxId:      rpcTx.Txid,
 					SpentedTx: vout.TxId,
 					Order:     order,
-					Type:      verify.TX_Vin,
+					Type:      stat.TX_Vin,
 					Address:   address,
 					Vout:      vin.Vout,
 					Amount:    amount,
@@ -154,7 +150,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 					SpentNumber:            0,
 					UnconfirmedSpentTx:     "",
 					UnconfirmedSpentNumber: 0,
-					Stat:                   stat,
+					Stat:                   status,
 					Timestamp:              rpcTx.Timestamp.Unix(),
 				}
 				vinouts = append(vinouts, vinout)
@@ -166,7 +162,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 			vinout := &types.Vinout{
 				TxId:      rpcTx.Txid,
 				Order:     order,
-				Type:      verify.TX_Vout,
+				Type:      stat.TX_Vout,
 				Address:   vout.ScriptPubKey.Addresses[0],
 				Vout:      index,
 				Amount:    vout.Amount,
@@ -183,7 +179,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 				SpentNumber:            0,
 				UnconfirmedSpentTx:     "",
 				UnconfirmedSpentNumber: 0,
-				Stat:                   stat,
+				Stat:                   status,
 				Timestamp:              rpcTx.Timestamp.Unix(),
 			}
 			totalVout += vout.Amount
@@ -211,7 +207,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 			TotalVout:     totalVout,
 			Fees:          fees,
 			Duplicate:     rpcTx.Duplicate,
-			Stat:          stat,
+			Stat:          status,
 		}
 		txs = append(txs, tx)
 	}

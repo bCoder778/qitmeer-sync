@@ -2,36 +2,10 @@ package verify
 
 import (
 	"fmt"
+	"github.com/bCoder778/qitmeer-sync/config"
+	"github.com/bCoder778/qitmeer-sync/db"
 	"github.com/bCoder778/qitmeer-sync/rpc"
-)
-
-type TxStat int
-type BlockStat int
-type TxType int
-
-const (
-	TX_Confirmed   TxStat = 0 // 已确认
-	TX_Unconfirmed TxStat = 1 // 未确认
-	TX_Memry       TxStat = 2 // 交易池
-	TX_Failed      TxStat = 3 // 失败
-)
-
-const (
-	Block_Confirmed   BlockStat = 0 // 已确认
-	Block_Unconfirmed BlockStat = 1 // 未确认
-	Block_InValid     BlockStat = 2 // 无效
-	Block_Red         BlockStat = 3 // 红色
-	Block_Duplicate   BlockStat = 4 // 红色
-)
-
-const (
-	TX_Vin  TxType = 0
-	TX_Vout TxType = 1
-)
-
-const (
-	Block_Confirmed_Value = 720
-	Tx_Confirmed_Value    = 10
+	"github.com/bCoder778/qitmeer-sync/verify/stat"
 )
 
 const (
@@ -40,68 +14,70 @@ const (
 )
 
 type QitmeerVerify struct {
+	conf *config.Verify
+	db   db.IDB
 }
 
-func NewQitmeerVerfiy() *QitmeerVerify {
-	return &QitmeerVerify{}
+func NewQitmeerVerfiy(conf *config.Verify, db db.IDB) *QitmeerVerify {
+	return &QitmeerVerify{conf: conf, db: db}
 }
 
-func (qv *QitmeerVerify) BlockStat(block *rpc.Block) BlockStat {
-	if block.Confirmations <= Block_Confirmed_Value {
-		return Block_Unconfirmed
+func (qv *QitmeerVerify) BlockStat(block *rpc.Block) stat.BlockStat {
+	if block.Confirmations <= stat.Block_Confirmed_Value {
+		return stat.Block_Unconfirmed
 	}
 	if !block.Txsvalid {
-		return Block_InValid
+		return stat.Block_InValid
 	}
 
 	switch block.IsBlue {
 	case 0:
-		return Block_Red
+		return stat.Block_Red
 	case 1:
 		// coinbase 是重复交易的情况
 		if qv.isDuplicateCoinBase(block) {
-			return Block_Duplicate
+			return stat.Block_Duplicate
 		}
-		return Block_Confirmed
+		return stat.Block_Confirmed
 	case 2:
-		return Block_Unconfirmed
+		return stat.Block_Unconfirmed
 	}
-	return Block_Unconfirmed
+	return stat.Block_Unconfirmed
 }
 
-func (qv *QitmeerVerify) TransactionStat(tx *rpc.Transaction, color int) TxStat {
+func (qv *QitmeerVerify) TransactionStat(tx *rpc.Transaction, color int) stat.TxStat {
 	if qv.IsCoinBase(tx) {
-		if tx.Confirmations <= Block_Confirmed_Value {
-			return TX_Unconfirmed
+		if tx.Confirmations <= stat.Block_Confirmed_Value {
+			return stat.TX_Unconfirmed
 		}
 		if !tx.Txsvalid {
-			return TX_Failed
+			return stat.TX_Failed
 		}
 
 		switch color {
 		case 0:
-			return TX_Failed
+			return stat.TX_Failed
 		case 1:
-			return TX_Confirmed
+			return stat.TX_Confirmed
 		case 2:
-			return TX_Unconfirmed
+			return stat.TX_Unconfirmed
 		default:
-			return TX_Unconfirmed
+			return stat.TX_Unconfirmed
 		}
 	} else {
 		if tx.BlockHash == "" {
-			return TX_Memry
+			return stat.TX_Memry
 		}
-		if tx.Confirmations <= Tx_Confirmed_Value {
-			return TX_Unconfirmed
+		if tx.Confirmations <= stat.Tx_Confirmed_Value {
+			return stat.TX_Unconfirmed
 		} else {
 			if !tx.Txsvalid {
-				return TX_Failed
+				return stat.TX_Failed
 			}
-			return TX_Confirmed
+			return stat.TX_Confirmed
 		}
 	}
-	return TX_Unconfirmed
+	return stat.TX_Unconfirmed
 }
 
 func (qv *QitmeerVerify) IsCoinBase(rpcTx *rpc.Transaction) bool {
@@ -119,10 +95,57 @@ func (qv *QitmeerVerify) isDuplicateCoinBase(block *rpc.Block) bool {
 	return false
 }
 
-func (qv *QitmeerVerify) VerifyAllAccount(utxo uint64, count int64) (bool, error) {
+func (qv *QitmeerVerify) verifyAllAccount(utxo uint64, count int64) (bool, error) {
 	should := (uint64(count)-1)*BlockReward + GenesisUTXO
 	if should != utxo {
 		return false, fmt.Errorf("all account %d is inconsistent with %d", utxo, should)
 	}
+	return true, nil
+}
+
+func (qv *QitmeerVerify) verifyFees(block *rpc.Block) (bool, error) {
+	var coinbaseFees uint64
+	var totalIn, totalOut uint64
+
+	for _, tx := range block.Transactions {
+		if qv.IsCoinBase(&tx) {
+			coinbaseFees = tx.Vout[0].Amount - BlockReward
+		} else {
+			for _, vin := range tx.Vin {
+				utxo, err := qv.db.GetVout(vin.Txid, vin.Vout)
+				if err != nil {
+					return false, err
+				}
+				totalIn += utxo.Amount
+			}
+			for _, vout := range tx.Vout {
+				totalOut += vout.Amount
+			}
+		}
+	}
+	fees := totalIn - totalOut
+	if coinbaseFees != fees {
+		return false, fmt.Errorf("verify block %d coinbase fees is %d is inconsistent with %d", block.Order, coinbaseFees, fees)
+	}
+	return true, nil
+}
+
+func (qv *QitmeerVerify) VerifyQitmeer(rpcBlock *rpc.Block) (bool, error) {
+	if rpcBlock.Order == 0 {
+		return true, nil
+	}
+	if qv.conf.UTXO {
+		utxo := qv.db.GetAllUtxo()
+		count := qv.db.GetConfirmedBlockCount()
+		if ok, err := qv.verifyAllAccount(uint64(utxo), count); !ok {
+			return false, err
+		}
+	}
+	if qv.conf.Fees {
+		if ok, err := qv.verifyFees(rpcBlock); !ok {
+			return false, err
+		}
+	}
+
 	return true, nil
 }

@@ -3,7 +3,7 @@ package sync
 import (
 	"github.com/bCoder778/qitmeer-sync/rpc"
 	"github.com/bCoder778/qitmeer-sync/storage/types"
-	"github.com/bCoder778/qitmeer-sync/verify"
+	"github.com/bCoder778/qitmeer-sync/verify/stat"
 )
 
 type IStorage interface {
@@ -25,7 +25,7 @@ type ISyncInfo interface {
 type IUpdate interface {
 	SaveBlock(block *rpc.Block) error
 	SaveTransaction(tx *rpc.Transaction, order uint64, color int) error
-	UpdateTransactionStat(txId string, stat verify.TxStat) error
+	UpdateTransactionStat(txId string, stat stat.TxStat) error
 }
 
 type IQueryBlock interface {

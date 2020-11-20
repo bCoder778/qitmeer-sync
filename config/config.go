@@ -27,10 +27,11 @@ func init() {
 }
 
 type Config struct {
-	Rpc   *Rpc   `toml:"rpc"`
-	DB    *DB    `toml:"db"`
-	Log   *Log   `toml:"log"`
-	Email *EMail `toml:"email"`
+	Rpc    *Rpc    `toml:"rpc"`
+	DB     *DB     `toml:"db"`
+	Log    *Log    `toml:"log"`
+	Email  *EMail  `toml:"email"`
+	Verify *Verify `toml:"verify"`
 }
 
 type Rpc struct {
@@ -59,6 +60,11 @@ type EMail struct {
 	Host  string   `toml:"host"`
 	Port  string   `toml:"port"`
 	To    []string `toml:"to"`
+}
+
+type Verify struct {
+	UTXO bool `toml:"utxo"`
+	Fees bool `toml:"fees"`
 }
 
 func Exist(fileName string) bool {

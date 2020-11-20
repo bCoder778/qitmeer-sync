@@ -4,12 +4,49 @@ import (
 	"fmt"
 	"github.com/bCoder778/qitmeer-sync/config"
 	"github.com/bCoder778/qitmeer-sync/db/sqldb"
-	"github.com/bCoder778/qitmeer-sync/storage"
+	"github.com/bCoder778/qitmeer-sync/storage/types"
 )
 
-func ConnectDB(setting *config.Config) (storage.IDB, error) {
+type IDB interface {
+	IUpdate
+	IGet
+	IQuery
+	IList
+	Close() error
+	Clear() error
+}
+
+type IUpdate interface {
+	UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vinouts []*types.Vinout, spentedVouts []*types.Vinout) error
+	UpdateTransactionDatas(txs []*types.Transaction, vinouts []*types.Vinout, spentedVouts []*types.Vinout) error
+
+	UpdateBlock(block *types.Block) error
+	UpdateTransaction(tx *types.Transaction) error
+	UpdateVinout(inout *types.Vinout) error
+}
+
+type IGet interface {
+	GetLastOrder() (uint64, error)
+	GetLastUnconfirmedOrder() (uint64, error)
+	GetTransaction(txId string, blockHash string) (*types.Transaction, error)
+	GetVout(txId string, vout int) (*types.Vinout, error)
+	GetAllUtxo() float64
+	GetConfirmedBlockCount() int64
+}
+
+type IQuery interface {
+	QueryUnconfirmedTranslateTransaction() ([]types.Transaction, error)
+	QueryMemTransaction() ([]types.Transaction, error)
+	QueryUnConfirmedOrders() ([]uint64, error)
+	QueryTransactions(txId string) ([]types.Transaction, error)
+}
+
+type IList interface {
+}
+
+func ConnectDB(setting *config.Config) (IDB, error) {
 	var (
-		db  storage.IDB
+		db  IDB
 		err error
 	)
 	switch setting.DB.DBType {

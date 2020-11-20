@@ -23,3 +23,7 @@ pass=""
 host=""
 port=""
 to=[""]
+
+[verify]
+utxo=true
+fees=true

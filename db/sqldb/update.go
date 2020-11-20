@@ -158,6 +158,79 @@ func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vino
 }
 
 func (d *DB) UpdateTransactionDatas(txs []*types.Transaction, vinouts []*types.Vinout, spentedVouts []*types.Vinout) error {
+	sess := d.engine.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return fmt.Errorf("failed to seesion begin, %s", err.Error())
+	}
+
+	// 更新transaction
+	queryTx := &types.Transaction{}
+	for _, tx := range txs {
+		queryTx.TxId = tx.TxId
+		queryTx.BlockHash = tx.BlockHash
+		if ok, err := sess.Exist(queryTx); err != nil {
+			sess.Rollback()
+			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
+		} else if ok {
+			if _, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).
+				Cols(`block_order`, `tx_hash`, `size`, `version`, `locktime`,
+					`timestamp`, `expire`, `confirmations`, `txsvaild`, `is_coinbase`,
+					`vins`, `vouts`, `total_vin`, `total_vout`, `fees`, `duplicate`,
+					`stat`).
+				Update(tx); err != nil {
+				sess.Rollback()
+				return err
+			}
+		} else {
+			if _, err := sess.Insert(tx); err != nil {
+				sess.Rollback()
+				return err
+			}
+		}
+	}
+
+	// 更新spentedVouts
+	for _, vinout := range spentedVouts {
+		if _, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).
+			Cols("spent_tx", "spent_number", "unconfirmed_spent_tx", "unconfirmed_spent_number").
+			Update(vinout); err != nil {
+			sess.Rollback()
+			return err
+		}
+
+	}
+
+	// 更新vinouts
+	queryVinout := &types.Vinout{}
+	for _, vinout := range vinouts {
+		queryVinout.TxId = vinout.TxId
+		queryVinout.Type = vinout.Type
+		queryVinout.Number = vinout.Number
+		if ok, err := sess.Exist(queryVinout); err != nil {
+			sess.Rollback()
+			return fmt.Errorf("faild to seesion exist vinout, %s", err.Error())
+		} else if ok {
+			if _, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).
+				Cols(`order`, `timestamp`, `address`, `amount`, `script_pub_key`,
+					`spent_tx`, `spent_number`, `unconfirmed_spent_tx`, `unconfirmed_spent_number`,
+					`spented_tx`, `vout`, `sequence`, `script_sig`, `stat`).
+				Update(vinout); err != nil {
+				sess.Rollback()
+				return err
+			}
+		} else {
+			if _, err := sess.Insert(vinout); err != nil {
+				sess.Rollback()
+				return err
+			}
+		}
+	}
+
+	if err := sess.Commit(); err != nil {
+		return fmt.Errorf("failed to seesion coimmit, %s", err.Error())
+	}
 	return nil
 }
 

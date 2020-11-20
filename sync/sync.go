@@ -8,6 +8,7 @@ import (
 	"github.com/bCoder778/qitmeer-sync/storage"
 	"github.com/bCoder778/qitmeer-sync/storage/types"
 	"github.com/bCoder778/qitmeer-sync/verify"
+	"github.com/bCoder778/qitmeer-sync/verify/stat"
 	"strings"
 	"sync"
 	"time"
@@ -29,7 +30,7 @@ type QitmeerSync struct {
 	uncfmTxCh        chan *rpc.Transaction
 	interupt         chan struct{}
 	wg               sync.WaitGroup
-	errors           chan error
+	ve               *verify.QitmeerVerify
 }
 
 func NewQitmeerSync() (*QitmeerSync, error) {
@@ -37,14 +38,16 @@ func NewQitmeerSync() (*QitmeerSync, error) {
 	if err != nil {
 		return nil, err
 	}
+	ve := verify.NewQitmeerVerfiy(config.Setting.Verify, db)
 	return &QitmeerSync{
-		storage:          storage.NewStorage(db),
+		storage:          storage.NewStorage(db, ve),
 		rpc:              rpc.NewClient(config.Setting.Rpc),
 		reBlockSync:      make(chan struct{}, 1),
 		reUncfmBlockSync: make(chan struct{}, 1),
 		reUncfmTxSync:    make(chan struct{}, 1),
 		interupt:         make(chan struct{}, 1),
 		wg:               sync.WaitGroup{},
+		ve:               ve,
 	}, nil
 }
 
@@ -228,7 +231,7 @@ func (qs *QitmeerSync) dealTransaction(tx types.Transaction) {
 	_, err := qs.rpc.GetTransaction(tx.TxId)
 	if err != nil {
 		if isExist(err) {
-			if err := qs.storage.UpdateTransactionStat(tx.TxId, verify.TX_Failed); err != nil {
+			if err := qs.storage.UpdateTransactionStat(tx.TxId, stat.TX_Failed); err != nil {
 				log.Mailf("Failed to update transaction %s stat to failed!err %v", tx.TxId, err)
 			}
 		}
@@ -278,9 +281,14 @@ func (qs *QitmeerSync) saveBlock(group *sync.WaitGroup) {
 	for {
 		select {
 		case block := <-qs.blockCh:
+			if _, err := qs.ve.VerifyQitmeer(block); err != nil {
+				// 验证失败，退出同步程序
+				log.Mailf(config.Setting.Email.Title, "Failed to verify block %v, err:%v", block, err)
+				qs.interupt <- struct{}{}
+			}
 			if err := qs.storage.SaveBlock(block); err != nil {
 				log.Mailf(config.Setting.Email.Title, "Failed to save block %v, err:%v", block, err)
-				qs.interupt <- struct{}{}
+				qs.reBlockSync <- struct{}{}
 				return
 			}
 			log.Infof("Save block %d", block.Order)
