@@ -107,7 +107,13 @@ func (qv *QitmeerVerify) verifyFees(block *rpc.Block) (bool, error) {
 	var coinbaseFees uint64
 	var totalIn, totalOut uint64
 
+	if !block.Txsvalid {
+		return true, nil
+	}
 	for _, tx := range block.Transactions {
+		if !tx.Txsvalid {
+			continue
+		}
 		if qv.IsCoinBase(&tx) {
 			coinbaseFees = tx.Vout[0].Amount - BlockReward
 		} else if !tx.Duplicate {

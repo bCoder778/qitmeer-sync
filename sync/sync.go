@@ -284,7 +284,7 @@ func (qs *QitmeerSync) saveBlock(group *sync.WaitGroup) {
 			if _, err := qs.ve.VerifyQitmeer(block); err != nil {
 				// 验证失败，退出同步程序
 				log.Mailf(config.Setting.Email.Title, "Failed to verify block %v, err:%v", block, err)
-				qs.interupt <- struct{}{}
+				close(qs.interupt)
 			}
 			if err := qs.storage.SaveBlock(block); err != nil {
 				log.Mailf(config.Setting.Email.Title, "Failed to save block %v, err:%v", block, err)
