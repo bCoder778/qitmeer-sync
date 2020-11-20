@@ -28,7 +28,6 @@ type Block struct {
 	Address       string           `xorm:"varchar(40)"`
 	Amount        uint64           `xorm:"bigint"`
 	Stat          verify.BlockStat `xorm:"int"`
-	UpdateVersion int              `xorm:"version"`
 }
 
 type Miner struct {
@@ -56,7 +55,6 @@ type Transaction struct {
 	TotalVout     uint64        `xorm:"bigint"`
 	Fees          uint64        `xorm:"bigint"`
 	Duplicate     bool          `xorm:"bool"`
-	UpdateVersion int           `xorm:"version"`
 	Stat          verify.TxStat `xorm:"int"`
 }
 
@@ -79,8 +77,6 @@ type Vinout struct {
 	Sequence               uint64        `xorm:"bigint"`
 	ScriptSig              *ScriptSig    `xorm:"json"`
 	Stat                   verify.TxStat `xorm:"stat"`
-
-	UpdateVersion int `xorm:"version"`
 }
 
 type ScriptPubKey struct {

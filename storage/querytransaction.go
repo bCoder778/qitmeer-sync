@@ -7,7 +7,7 @@ func (s *Storage) QueryMemTransaction() []types.Transaction {
 	return txs
 }
 
-func (s *Storage) QueryUnconfirmedTransaction() []types.Transaction {
-	txs, _ := s.db.QueryUnconfirmedTransaction()
+func (s *Storage) QueryUnconfirmedTranslateTransaction() []types.Transaction {
+	txs, _ := s.db.QueryUnconfirmedTranslateTransaction()
 	return txs
 }

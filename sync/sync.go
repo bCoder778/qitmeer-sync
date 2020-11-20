@@ -1,13 +1,13 @@
 package sync
 
 import (
-	"fmt"
 	"github.com/bCoder778/log"
 	"github.com/bCoder778/qitmeer-sync/config"
 	"github.com/bCoder778/qitmeer-sync/db"
 	"github.com/bCoder778/qitmeer-sync/rpc"
 	"github.com/bCoder778/qitmeer-sync/storage"
 	"github.com/bCoder778/qitmeer-sync/storage/types"
+	"github.com/bCoder778/qitmeer-sync/verify"
 	"strings"
 	"sync"
 	"time"
@@ -29,6 +29,7 @@ type QitmeerSync struct {
 	uncfmTxCh        chan *rpc.Transaction
 	interupt         chan struct{}
 	wg               sync.WaitGroup
+	errors           chan error
 }
 
 func NewQitmeerSync() (*QitmeerSync, error) {
@@ -54,16 +55,18 @@ func (qs *QitmeerSync) Stop() {
 func (qs *QitmeerSync) Run() {
 	qs.wg.Add(1)
 	go qs.syncBlock()
-	/*qs.wg.Add(1)
+
+	qs.wg.Add(1)
 	go qs.syncTxPool()
 
 	qs.wg.Add(1)
 	go qs.updateUnconfirmedBlock()
+
 	qs.wg.Add(1)
 	go qs.updateUnconfirmedTransaction()
 
 	qs.wg.Add(1)
-	go qs.dealFailedTransaction()*/
+	go qs.dealFailedTransaction()
 
 	qs.wg.Wait()
 	if err := qs.storage.Close(); err != nil {
@@ -88,7 +91,6 @@ func (qs *QitmeerSync) syncBlock() {
 			wg.Add(1)
 			go qs.saveBlock(&wg)
 			wg.Wait()
-			fmt.Println("wait end")
 		case <-qs.interupt:
 			log.Info("Shutdown sync block")
 			return
@@ -226,7 +228,7 @@ func (qs *QitmeerSync) dealTransaction(tx types.Transaction) {
 	_, err := qs.rpc.GetTransaction(tx.TxId)
 	if err != nil {
 		if isExist(err) {
-			if err := qs.storage.UpdateTxFailed(tx.TxId); err != nil {
+			if err := qs.storage.UpdateTransactionStat(tx.TxId, verify.TX_Failed); err != nil {
 				log.Mailf("Failed to update transaction %s stat to failed!err %v", tx.TxId, err)
 			}
 		}
@@ -236,7 +238,7 @@ func (qs *QitmeerSync) dealTransaction(tx types.Transaction) {
 func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 	defer group.Done()
 
-	start := qs.storage.StartHeight()
+	start := qs.storage.LastOrder()
 	if start <= 5 {
 		start = 0
 	} else {
@@ -278,7 +280,7 @@ func (qs *QitmeerSync) saveBlock(group *sync.WaitGroup) {
 		case block := <-qs.blockCh:
 			if err := qs.storage.SaveBlock(block); err != nil {
 				log.Mailf(config.Setting.Email.Title, "Failed to save block %v, err:%v", block, err)
-				qs.reBlockSync <- struct{}{}
+				qs.interupt <- struct{}{}
 				return
 			}
 			log.Infof("Save block %d", block.Order)
@@ -292,32 +294,36 @@ func (qs *QitmeerSync) saveBlock(group *sync.WaitGroup) {
 func (qs *QitmeerSync) requestUnconfirmedBlock(group *sync.WaitGroup) {
 	defer group.Done()
 
-	orders := qs.storage.UnconfirmedOrders()
-	for _, order := range orders {
-		select {
-		case <-qs.reUncfmBlockSync:
-			log.Info("Stop and restart request unconfirmed block")
-			return
-		case <-qs.interupt:
-			log.Info("Shutdown request unconfirmed block")
-			return
-		default:
-			block, err := qs.rpc.GetBlock(order)
-			if err != nil {
-				log.Warnf("Request block %d failed! %s", order, err.Error())
-				time.Sleep(time.Second * waitBlockTime)
-				continue
+	unOrder := qs.storage.LastUnconfirmedOrder()
+	if unOrder != 0 {
+		order := qs.storage.LastOrder()
+		for ; unOrder <= order; unOrder++ {
+			select {
+			case <-qs.reUncfmBlockSync:
+				log.Info("Stop and restart request unconfirmed block")
+				return
+			case <-qs.interupt:
+				log.Info("Shutdown request unconfirmed block")
+				return
+			default:
+				block, err := qs.rpc.GetBlock(unOrder)
+				if err != nil {
+					log.Warnf("Request block %d failed! %s", unOrder, err.Error())
+					time.Sleep(time.Second * waitBlockTime)
+					continue
+				}
+				color, err := qs.rpc.IsBlue(block.Hash)
+				if err != nil {
+					log.Warnf("Request block isBlue %d failed! %s", unOrder, err.Error())
+					time.Sleep(time.Second * waitBlockTime)
+					continue
+				}
+				block.IsBlue = color
+				qs.uncfmBlockCh <- block
 			}
-			color, err := qs.rpc.IsBlue(block.Hash)
-			if err != nil {
-				log.Warnf("Request block isBlue %d failed! %s", order, err.Error())
-				time.Sleep(time.Second * waitBlockTime)
-				continue
-			}
-			block.IsBlue = color
-			qs.uncfmBlockCh <- block
 		}
 	}
+	qs.reUncfmBlockSync <- struct{}{}
 }
 
 func (qs *QitmeerSync) saveUnconfirmedBlock(group *sync.WaitGroup) {
@@ -328,9 +334,13 @@ func (qs *QitmeerSync) saveUnconfirmedBlock(group *sync.WaitGroup) {
 		case block := <-qs.uncfmBlockCh:
 			if err := qs.storage.SaveBlock(block); err != nil {
 				log.Mailf(config.Setting.Email.Title, "Failed to save unconfirmed block %v, err:%v", block, err)
-				qs.reUncfmBlockSync <- struct{}{}
+				qs.interupt <- struct{}{}
 				return
 			}
+			log.Infof("Save unconfirmed block %d", block.Order)
+		case <-qs.reUncfmBlockSync:
+			log.Info("Stop and restart save unconfirmed block")
+			return
 		case <-qs.interupt:
 			log.Info("Shutdown save unconfirmed block")
 			return
@@ -341,7 +351,7 @@ func (qs *QitmeerSync) saveUnconfirmedBlock(group *sync.WaitGroup) {
 func (qs *QitmeerSync) requestUnconfirmedTransaction(group *sync.WaitGroup) {
 	defer group.Done()
 
-	txs := qs.storage.QueryUnconfirmedTransaction()
+	txs := qs.storage.QueryUnconfirmedTranslateTransaction()
 	for _, tx := range txs {
 		select {
 		case <-qs.reUncfmTxSync:
@@ -361,6 +371,7 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction(group *sync.WaitGroup) {
 			qs.uncfmTxCh <- rpcTx
 		}
 	}
+	qs.reUncfmTxSync <- struct{}{}
 }
 
 func (qs *QitmeerSync) saveUnconfirmedTransaction(group *sync.WaitGroup) {
@@ -374,6 +385,9 @@ func (qs *QitmeerSync) saveUnconfirmedTransaction(group *sync.WaitGroup) {
 				qs.reUncfmTxSync <- struct{}{}
 				return
 			}
+		case <-qs.reUncfmTxSync:
+			log.Info("Stop and restart save unconfirmed transaction")
+			return
 		case <-qs.interupt:
 			log.Info("Shutdown save unconfirmed transaction")
 			return

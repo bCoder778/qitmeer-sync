@@ -19,6 +19,14 @@ type transactionData struct {
 }
 
 func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
+	if rpcBlock.Order != 0 {
+		utxo := s.db.GetAllUtxo()
+		count := s.db.GetConfirmedBlockCount()
+		if ok, err := s.verify.VerifyAllAccount(uint64(utxo), count); !ok {
+			return err
+		}
+	}
+
 	block := s.crateBlock(rpcBlock)
 	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.IsBlue)
 	if err != nil {
@@ -43,16 +51,19 @@ func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order uint64, color in
 	return s.db.UpdateTransactionDatas(txData.Transactions, txData.Vinouts, txData.SpentedVouts)
 }
 
-func (s *Storage) UpdateTxFailed(txId string) error {
-	tx, err := s.db.GetTransaction(txId)
+func (s *Storage) UpdateTransactionStat(txId string, stat verify.TxStat) error {
+	txs, err := s.db.QueryTransactions(txId)
 	if err != nil {
 		return err
 	}
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	tx.Stat = verify.TX_Failed
-	return s.db.UpdateTransaction(tx)
+	for _, tx := range txs {
+		tx.Stat = stat
+		s.db.UpdateTransaction(&tx)
+	}
+	return nil
 }
 
 func (s *Storage) crateBlock(rpcBlock *rpc.Block) *types.Block {
@@ -113,7 +124,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 				if stat == verify.TX_Confirmed {
 					vout.SpentTx = rpcTx.Txid
 					vout.SpentNumber = index
-				} else {
+				} else if stat == verify.TX_Unconfirmed || stat == verify.TX_Memry {
 					vout.UnconfirmedSpentTx = rpcTx.Txid
 					vout.UnconfirmedSpentNumber = index
 				}

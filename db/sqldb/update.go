@@ -23,7 +23,7 @@ func ConnectMysql(conf *config.DB) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	engine.ShowSQL(false)
+	//engine.ShowSQL(true)
 
 	if err = engine.Sync2(
 		new(types.Block),
@@ -51,12 +51,9 @@ func (d *DB) Close() error {
 }
 
 func (d *DB) Clear() error {
-	for _, v := range d.engine.Tables {
-		err := d.engine.DropTables(v.Name)
-		if err != nil {
-			return err
-		}
-	}
+	d.engine.DropTables("block")
+	d.engine.DropTables("transaction")
+	d.engine.DropTables("vinout")
 	return nil
 }
 
@@ -74,10 +71,16 @@ func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vino
 		sess.Rollback()
 		return fmt.Errorf("faild to seesion exist block, %s", err.Error())
 	} else if ok {
-		if _, err := sess.Where("hash = ?", block.Hash).Update(block); err != nil {
+		if _, err := sess.Where("hash = ?", block.Hash).
+			Cols(`txvalid`, `confirmations`, `version`, `weight`, `height`, `tx_root`, `order`,
+				`transactions`, `state_root`, `bits`, `timestamp`, `parent_root`, `parents`, `children`,
+				`difficulty`, `pow_name`, `pow_type`, `nonce`, `edge_bits`, `circle_nonces`, `address`,
+				`amount`, `stat`).
+			Update(block); err != nil {
 			sess.Rollback()
 			return err
 		}
+
 	} else {
 		if _, err := sess.Insert(block); err != nil {
 			sess.Rollback()
@@ -94,7 +97,12 @@ func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vino
 			sess.Rollback()
 			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
 		} else if ok {
-			if _, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).Update(tx); err != nil {
+			if _, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).
+				Cols(`block_order`, `tx_hash`, `size`, `version`, `locktime`,
+					`timestamp`, `expire`, `confirmations`, `txsvaild`, `is_coinbase`,
+					`vins`, `vouts`, `total_vin`, `total_vout`, `fees`, `duplicate`,
+					`stat`).
+				Update(tx); err != nil {
 				sess.Rollback()
 				return err
 			}
@@ -127,7 +135,11 @@ func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vino
 			sess.Rollback()
 			return fmt.Errorf("faild to seesion exist vinout, %s", err.Error())
 		} else if ok {
-			if _, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).Update(vinout); err != nil {
+			if _, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).
+				Cols(`order`, `timestamp`, `address`, `amount`, `script_pub_key`,
+					`spent_tx`, `spent_number`, `unconfirmed_spent_tx`, `unconfirmed_spent_number`,
+					`spented_tx`, `vout`, `sequence`, `script_sig`, `stat`).
+				Update(vinout); err != nil {
 				sess.Rollback()
 				return err
 			}
@@ -154,6 +166,20 @@ func (d *DB) UpdateBlock(block *types.Block) error {
 }
 
 func (d *DB) UpdateTransaction(tx *types.Transaction) error {
+	sess := d.engine.NewSession()
+	defer sess.Close()
+
+	if n, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).
+		Cols(`block_order`, `tx_hash`, `size`, `version`, `locktime`,
+			`timestamp`, `expire`, `confirmations`, `txsvaild`, `is_coinbase`,
+			`vins`, `vouts`, `total_vin`, `total_vout`, `fees`, `duplicate`,
+			`stat`).
+		Update(tx); err != nil {
+		sess.Rollback()
+		return err
+	} else {
+		fmt.Println(n)
+	}
 	return nil
 }
 

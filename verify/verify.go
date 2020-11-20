@@ -1,6 +1,9 @@
 package verify
 
-import "github.com/bCoder778/qitmeer-sync/rpc"
+import (
+	"fmt"
+	"github.com/bCoder778/qitmeer-sync/rpc"
+)
 
 type TxStat int
 type BlockStat int
@@ -18,6 +21,7 @@ const (
 	Block_Unconfirmed BlockStat = 1 // 未确认
 	Block_InValid     BlockStat = 2 // 无效
 	Block_Red         BlockStat = 3 // 红色
+	Block_Duplicate   BlockStat = 4 // 红色
 )
 
 const (
@@ -28,6 +32,11 @@ const (
 const (
 	Block_Confirmed_Value = 720
 	Tx_Confirmed_Value    = 10
+)
+
+const (
+	BlockReward = 12000000000
+	GenesisUTXO = 6524293004366634
 )
 
 type QitmeerVerify struct {
@@ -49,6 +58,10 @@ func (qv *QitmeerVerify) BlockStat(block *rpc.Block) BlockStat {
 	case 0:
 		return Block_Red
 	case 1:
+		// coinbase 是重复交易的情况
+		if qv.isDuplicateCoinBase(block) {
+			return Block_Duplicate
+		}
 		return Block_Confirmed
 	case 2:
 		return Block_Unconfirmed
@@ -93,4 +106,23 @@ func (qv *QitmeerVerify) TransactionStat(tx *rpc.Transaction, color int) TxStat 
 
 func (qv *QitmeerVerify) IsCoinBase(rpcTx *rpc.Transaction) bool {
 	return rpcTx.Vin[0].Coinbase != ""
+}
+
+func (qv *QitmeerVerify) isDuplicateCoinBase(block *rpc.Block) bool {
+	for _, tx := range block.Transactions {
+		if len(tx.Vin) == 1 {
+			if tx.Vin[0].Coinbase != "" && tx.Duplicate {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (qv *QitmeerVerify) VerifyAllAccount(utxo uint64, count int64) (bool, error) {
+	should := (uint64(count)-1)*BlockReward + GenesisUTXO
+	if should != utxo {
+		return false, fmt.Errorf("all account %d is inconsistent with %d", utxo, should)
+	}
+	return true, nil
 }

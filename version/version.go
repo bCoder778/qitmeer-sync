@@ -7,10 +7,10 @@ import (
 
 var (
 	// 初始化为 unknown，如果编译时没有传入这些值，则为 unknown
-	GitCommitLog   = "unknown"
-	GitStatus      = "unknown"
-	BuildTime      = "unknown"
-	BuildGoVersion = "unknown"
+	GitCommitLog   = "unknown_unknown"
+	GitStatus      = "unknown_unknown"
+	BuildTime      = "unknown_unknown"
+	BuildGoVersion = "unknown_unknown"
 	Version        = "v0.1.0"
 )
 
