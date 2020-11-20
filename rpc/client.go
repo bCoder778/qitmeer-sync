@@ -5,9 +5,9 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"github.com/bCoder778/qitmeer-sync/config"
 	"io/ioutil"
 	"net/http"
-	"qitmeer-sync/config"
 	"strconv"
 	"strings"
 )

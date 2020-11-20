@@ -1,4 +1,4 @@
-module qitmeer-sync
+module github.com/bCoder778/qitmeer-sync
 
 go 1.13
 
@@ -11,11 +11,11 @@ require (
 	github.com/agrison/mxj v0.0.0-20160310142625-1269f8afb3b4 // indirect
 	github.com/bCoder778/log v0.0.0-20200815025303-b2d7a30e10e7
 	github.com/bndr/gotabulate v1.1.2 // indirect
-	github.com/denisenkom/go-mssqldb v0.0.0-20190707035753-2be1aa521ff4
+	github.com/denisenkom/go-mssqldb v0.9.0
 	github.com/fatih/structs v1.1.0 // indirect
+	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-gomail/gomail v0.0.0-20160411212932-81ebce5c23df // indirect
 	github.com/go-sql-driver/mysql v1.5.0
-	github.com/go-xorm/xorm v0.7.9
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tealeg/xlsx v1.0.5 // indirect
 	github.com/xormplus/builder v0.0.0-20200331055651-240ff40009be // indirect

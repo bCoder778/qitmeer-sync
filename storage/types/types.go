@@ -1,6 +1,6 @@
 package types
 
-import "qitmeer-sync/verify"
+import "github.com/bCoder778/qitmeer-sync/verify"
 
 type Block struct {
 	Id            uint64           `xorm:"bigint pk autoincr"`

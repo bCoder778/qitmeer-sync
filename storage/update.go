@@ -2,9 +2,9 @@ package storage
 
 import (
 	"fmt"
-	"qitmeer-sync/rpc"
-	"qitmeer-sync/storage/types"
-	"qitmeer-sync/verify"
+	"github.com/bCoder778/qitmeer-sync/rpc"
+	"github.com/bCoder778/qitmeer-sync/storage/types"
+	"github.com/bCoder778/qitmeer-sync/verify"
 )
 
 type blockData struct {

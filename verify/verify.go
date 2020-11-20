@@ -1,6 +1,6 @@
 package verify
 
-import "qitmeer-sync/rpc"
+import "github.com/bCoder778/qitmeer-sync/rpc"
 
 type TxStat int
 type BlockStat int

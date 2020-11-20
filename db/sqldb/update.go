@@ -4,9 +4,9 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	//"github.com/go-xorm/xorm"
+	"github.com/bCoder778/qitmeer-sync/config"
+	"github.com/bCoder778/qitmeer-sync/storage/types"
 	"github.com/xormplus/xorm"
-	"qitmeer-sync/config"
-	"qitmeer-sync/storage/types"
 	"strings"
 
 	//_ "github.com/lunny/godbc"

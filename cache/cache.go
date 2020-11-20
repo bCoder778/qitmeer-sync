@@ -1,6 +1,6 @@
 package cache
 
-import "qitmeer-sync/storage/types"
+import "github.com/bCoder778/qitmeer-sync/storage/types"
 
 type Cache struct {
 	Blocks       []types.Block

@@ -2,9 +2,9 @@ package db
 
 import (
 	"fmt"
-	"qitmeer-sync/config"
-	"qitmeer-sync/db/sqldb"
-	"qitmeer-sync/storage"
+	"github.com/bCoder778/qitmeer-sync/config"
+	"github.com/bCoder778/qitmeer-sync/db/sqldb"
+	"github.com/bCoder778/qitmeer-sync/storage"
 )
 
 func ConnectDB(setting *config.Config) (storage.IDB, error) {

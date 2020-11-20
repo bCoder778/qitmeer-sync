@@ -1,8 +1,8 @@
 package storage
 
 import (
-	"qitmeer-sync/storage/types"
-	"qitmeer-sync/verify"
+	"github.com/bCoder778/qitmeer-sync/storage/types"
+	"github.com/bCoder778/qitmeer-sync/verify"
 	"sync"
 )
 

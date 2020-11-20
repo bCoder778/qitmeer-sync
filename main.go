@@ -2,10 +2,10 @@ package main
 
 import (
 	"github.com/bCoder778/log"
+	"github.com/bCoder778/qitmeer-sync/config"
+	"github.com/bCoder778/qitmeer-sync/sync"
 	"net/http"
 	_ "net/http/pprof"
-	"qitmeer-sync/config"
-	"qitmeer-sync/sync"
 	"runtime"
 )
 
