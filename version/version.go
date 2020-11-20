@@ -16,12 +16,18 @@ var (
 
 // 返回单行格式
 func StringifySingleLine() string {
+	if GitStatus != "" {
+		GitCommitLog = GitCommitLog[0:10] + "-dirty"
+	}
 	return fmt.Sprintf("Qitmeer-sync Version=%s. GitCommitLog=%s. GitStatus=%s. BuildTime=%s. GoVersion=%s. runtime=%s/%s.",
 		Version, GitCommitLog[0:10], GitStatus, BuildTime, BuildGoVersion, runtime.GOOS, runtime.GOARCH)
 }
 
 // 返回多行格式
 func StringifyMultiLine() string {
-	return fmt.Sprintf("Qitmeer-sync = %s\nGitCommit = %s\nGitStatus=%s\nBuildTime = %s\nGoVersion = %s\n",
-		Version, GitCommitLog[0:10], GitStatus, BuildTime, BuildGoVersion)
+	if GitStatus != "" {
+		GitCommitLog = GitCommitLog[0:10] + "-dirty"
+	}
+	return fmt.Sprintf("Qitmeer-sync = %s\nGitCommit = %s\nBuildTime = %s\nGoVersion = %s\n",
+		Version, GitCommitLog, BuildTime, BuildGoVersion)
 }
