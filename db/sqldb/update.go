@@ -2,11 +2,11 @@ package sqldb
 
 import (
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
-	//"github.com/go-xorm/xorm"
 	"github.com/bCoder778/qitmeer-sync/config"
 	"github.com/bCoder778/qitmeer-sync/storage/types"
-	"github.com/xormplus/xorm"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-xorm/xorm"
+	//"github.com/xormplus/xorm"
 	"strings"
 
 	//_ "github.com/lunny/godbc"
@@ -48,6 +48,16 @@ func ConnectSqlServer(conf *config.DB) (*DB, error) {
 
 func (d *DB) Close() error {
 	return d.engine.Close()
+}
+
+func (d *DB) Clear() error {
+	for _, v := range d.engine.Tables {
+		err := d.engine.DropTables(v.Name)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vinouts []*types.Vinout, spentedVouts []*types.Vinout) error {

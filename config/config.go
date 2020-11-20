@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/bCoder778/log"
+	"os"
 	"sync"
 )
 
@@ -17,10 +18,10 @@ var once sync.Once
 func init() {
 
 	once.Do(func() {
-		//cfg = &Config{}
-		_, err := toml.DecodeFile(configFile, &Setting)
-		if err != nil {
-			fmt.Println(err)
+		if Exist(configFile) {
+			if _, err := toml.DecodeFile(configFile, &Setting); err != nil {
+				fmt.Println(err)
+			}
 		}
 	})
 }
@@ -58,4 +59,14 @@ type EMail struct {
 	Host  string   `toml:"host"`
 	Port  string   `toml:"port"`
 	To    []string `toml:"to"`
+}
+
+func Exist(fileName string) bool {
+	_, err := os.Stat(fileName)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
 }

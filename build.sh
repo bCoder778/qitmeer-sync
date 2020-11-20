@@ -15,10 +15,10 @@ BuildGoVersion=`go version`
 
 # 将以上变量序列化至 LDFlags 变量中
 LDFlags=" \
-    -X 'github.com/bCoder778/qitmeer-sync/version/version.GitCommitLog=${GitCommitLog}' \
-    -X 'github.com/bCoder778/qitmeer-sync/version/version.GitStatus=${GitStatus}' \
-    -X 'github.com/bCoder778/qitmeer-sync/version/version.BuildTime=${BuildTime}' \
-    -X 'github.com/bCoder778/qitmeer-sync/version/version.BuildGoVersion=${BuildGoVersion}' \
+    -X 'github.com/bCoder778/qitmeer-sync/version.GitCommitLog=${GitCommitLog}' \
+    -X 'github.com/bCoder778/qitmeer-sync/version.GitStatus=${GitStatus}' \
+    -X 'github.com/bCoder778/qitmeer-sync/version.BuildTime=${BuildTime}' \
+    -X 'github.com/bCoder778/qitmeer-sync/version.BuildGoVersion=${BuildGoVersion}' \
 "
 
 ROOT_DIR=`pwd`
@@ -29,7 +29,8 @@ if [ ! -d ${ROOT_DIR}/bin ]; then
 fi
 
 # 编译多个可执行程序
-cd ${ROOT_DIR} && go build -ldflags "$LDFlags" -o ${ROOT_DIR}/bin/qitmeer-sync &&
+cd ${ROOT_DIR} && GOOS=linux GOARCH=amd64 go build -ldflags "$LDFlags" -o ${ROOT_DIR}/bin/linux/qitmeer-sync &&
+cd ${ROOT_DIR} && GOOS=darwin GOARCH=amd64 go build -ldflags "$LDFlags" -o ${ROOT_DIR}/bin/darwin/qitmeer-sync &&
 ls -lrt ${ROOT_DIR}/bin &&
-cd ${ROOT_DIR} && ./bin/qitmeer-sync -v &&
+cd ${ROOT_DIR} && ./bin/darwin/qitmeer-sync -v &&
 echo 'build done.'

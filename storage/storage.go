@@ -12,6 +12,7 @@ type IDB interface {
 	IQuery
 	IList
 	Close() error
+	Clear() error
 }
 
 type IUpdate interface {
