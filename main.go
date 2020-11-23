@@ -37,15 +37,17 @@ func dealCommand() {
 func setSystemResource() {
 	cpuNumber := runtime.NumCPU()
 	gcPercent := 20
-	if config.Setting.Resources.CPUNumber < cpuNumber {
-		cpuNumber = config.Setting.Resources.CPUNumber
-	}
-	if config.Setting.Resources.GCPercent > 0 && config.Setting.Resources.GCPercent < 100 {
-		gcPercent = config.Setting.Resources.GCPercent
+	if config.Setting != nil {
+		if config.Setting.Resources.CPUNumber < cpuNumber {
+			cpuNumber = config.Setting.Resources.CPUNumber
+		}
+		if config.Setting.Resources.GCPercent > 0 && config.Setting.Resources.GCPercent < 100 {
+			gcPercent = config.Setting.Resources.GCPercent
+		}
+
 	}
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	debug.SetGCPercent(gcPercent)
-
 }
 
 func runSync() {
