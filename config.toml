@@ -12,8 +12,9 @@ address="127.0.0.1:3306"
 dbname="qitmeersync"
 
 [log]
-# console | file
-mode=1
+# console=12 | file=11
+mode=12
+# debug=0 | info=1 | warn=2 | fail=3 | error=4 | email=5
 level=1
 
 [email]
@@ -27,3 +28,7 @@ to=[""]
 [verify]
 utxo=true
 fees=true
+
+[resources]
+cpu-number=4
+gc-percent=20

@@ -52,7 +52,9 @@ func NewQitmeerSync() (*QitmeerSync, error) {
 }
 
 func (qs *QitmeerSync) Stop() {
-	close(qs.interupt)
+	if qs.interupt != nil {
+		close(qs.interupt)
+	}
 }
 
 func (qs *QitmeerSync) Run() {
@@ -284,7 +286,8 @@ func (qs *QitmeerSync) saveBlock(group *sync.WaitGroup) {
 			if _, err := qs.ve.VerifyQitmeer(block); err != nil {
 				// 验证失败，退出同步程序
 				log.Mailf(config.Setting.Email.Title, "Failed to verify block %v, err:%v", block, err)
-				close(qs.interupt)
+				qs.Stop()
+				return
 			}
 			if err := qs.storage.SaveBlock(block); err != nil {
 				log.Mailf(config.Setting.Email.Title, "Failed to save block %v, err:%v", block, err)
@@ -342,7 +345,7 @@ func (qs *QitmeerSync) saveUnconfirmedBlock(group *sync.WaitGroup) {
 		case block := <-qs.uncfmBlockCh:
 			if err := qs.storage.SaveBlock(block); err != nil {
 				log.Mailf(config.Setting.Email.Title, "Failed to save unconfirmed block %v, err:%v", block, err)
-				qs.interupt <- struct{}{}
+				qs.Stop()
 				return
 			}
 			log.Infof("Save unconfirmed block %d", block.Order)

@@ -27,11 +27,12 @@ func init() {
 }
 
 type Config struct {
-	Rpc    *Rpc    `toml:"rpc"`
-	DB     *DB     `toml:"db"`
-	Log    *Log    `toml:"log"`
-	Email  *EMail  `toml:"email"`
-	Verify *Verify `toml:"verify"`
+	Rpc       *Rpc       `toml:"rpc"`
+	DB        *DB        `toml:"db"`
+	Log       *Log       `toml:"log"`
+	Email     *EMail     `toml:"email"`
+	Verify    *Verify    `toml:"verify"`
+	Resources *Resources `toml:"resources"`
 }
 
 type Rpc struct {
@@ -46,6 +47,11 @@ type DB struct {
 	Password string `toml:"password"`
 	Address  string `toml:"address"`
 	DBName   string `toml:"dbname"`
+}
+
+type Resources struct {
+	CPUNumber int `toml:"cpu-number"`
+	GCPercent int `toml:"gc-percent"`
 }
 
 type Log struct {

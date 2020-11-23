@@ -14,9 +14,7 @@ import (
 )
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	debug.SetGCPercent(20)
-
+	setSystemResource()
 	dealCommand()
 	runSync()
 }
@@ -34,6 +32,20 @@ func dealCommand() {
 		clearData()
 		os.Exit(1)
 	}
+}
+
+func setSystemResource() {
+	cpuNumber := runtime.NumCPU()
+	gcPercent := 20
+	if config.Setting.Resources.CPUNumber < cpuNumber {
+		cpuNumber = config.Setting.Resources.CPUNumber
+	}
+	if config.Setting.Resources.GCPercent > 0 && config.Setting.Resources.GCPercent < 100 {
+		gcPercent = config.Setting.Resources.GCPercent
+	}
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	debug.SetGCPercent(gcPercent)
+
 }
 
 func runSync() {
