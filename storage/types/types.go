@@ -5,31 +5,31 @@ import (
 )
 
 type Block struct {
-	Id            uint64         `xorm:"bigint pk autoincr"`
-	Hash          string         `xorm:"varchar(64) index"`
-	Txvalid       bool           `xorm:"bool"`
-	Confirmations uint64         `xorm:"bigint"`
-	Version       uint32         `xorm:"int"`
-	Weight        uint64         `xorm:"bigint"`
-	Height        uint64         `xorm:"bigint"`
-	TxRoot        string         `xorm:"varchar(64)"`
-	Order         uint64         `xorm:"bigint"`
-	Transactions  int            `xorm:"int"`
-	StateRoot     string         `xorm:"varchar(64)"`
-	Bits          string         `xorm:"varchar(64)"`
-	Timestamp     int64          `xorm:"bigint"`
-	ParentRoot    string         `xorm:"varchar(64)"`
-	Parents       []string       `xorm:"json"`
-	Children      []string       `xorm:"json"`
-	Difficulty    uint64         `xorm:"bigint"`
-	PowName       string         `xorm:"varchar(20)"`
-	PowType       int            `xorm:"int"`
-	Nonce         uint64         `xorm:"bigint"`
-	EdgeBits      int            `xorm:"int"`
-	CircleNonces  string         `xorm:"Text"`
-	Address       string         `xorm:"varchar(40)"`
-	Amount        uint64         `xorm:"bigint"`
-	Stat          stat.BlockStat `xorm:"int"`
+	Id            uint64         `xorm:"bigint pk autoincr" json:"id"`
+	Hash          string         `xorm:"varchar(64) index" json:"hash"`
+	Txvalid       bool           `xorm:"bool" json:"txvalid"`
+	Confirmations uint64         `xorm:"bigint" json:"confirmation"`
+	Version       uint32         `xorm:"int" json:"version"`
+	Weight        uint64         `xorm:"bigint" json:"weight"`
+	Height        uint64         `xorm:"bigint" json:"height"`
+	TxRoot        string         `xorm:"varchar(64)" json:"txroot"`
+	Order         uint64         `xorm:"bigint" json:"order"`
+	Transactions  int            `xorm:"int" json:"transactions"`
+	StateRoot     string         `xorm:"varchar(64)" json:"stateroot"`
+	Bits          string         `xorm:"varchar(64)" json:"bits"`
+	Timestamp     int64          `xorm:"bigint" json:"timestamp"`
+	ParentRoot    string         `xorm:"varchar(64)" json:"parantroot"`
+	Parents       []string       `xorm:"json" json:"parents"`
+	Children      []string       `xorm:"json" json:"children"`
+	Difficulty    uint64         `xorm:"bigint" json:"difficulty"`
+	PowName       string         `xorm:"varchar(20)" json:"powname"`
+	PowType       int            `xorm:"int" json:"powtype"`
+	Nonce         uint64         `xorm:"bigint" json:"nonce"`
+	EdgeBits      int            `xorm:"int" json:"edgebits"`
+	CircleNonces  string         `xorm:"Text" json:"circlenonces"`
+	Address       string         `xorm:"varchar(40)" json:"address"`
+	Amount        uint64         `xorm:"bigint" json:"amount"`
+	Stat          stat.BlockStat `xorm:"int" json:"stat"`
 }
 
 type Miner struct {
@@ -38,57 +38,57 @@ type Miner struct {
 }
 
 type Transaction struct {
-	Id            uint64      `xorm:"bigint autoincr pk"`
-	TxId          string      `xorm:"varchar(64) index"`
-	BlockHash     string      `xorm:"varchar(64) index"`
-	BlockOrder    uint64      `xorm:"bigint"`
-	TxHash        string      `xorm:"varchar(64)"`
-	Size          int         `xorm:"int"`
-	Version       uint32      `xorm:"int"`
-	Locktime      uint64      `xorm:"bigint"`
-	Timestamp     int64       `xorm:"bigint"`
-	Expire        uint64      `xorm:"bigint"`
-	Confirmations uint64      `xorm:"bigint"`
-	Txsvaild      bool        `xorm:"bool"`
-	IsCoinbase    bool        `xorm:"bool"`
-	Vins          int         `xorm:"int"`
-	Vouts         int         `xorm:"int"`
-	TotalVin      uint64      `xorm:"bigint"`
-	TotalVout     uint64      `xorm:"bigint"`
-	Fees          uint64      `xorm:"bigint"`
-	Duplicate     bool        `xorm:"bool"`
-	Stat          stat.TxStat `xorm:"int"`
+	Id            uint64      `xorm:"bigint autoincr pk" json:"id"`
+	TxId          string      `xorm:"varchar(64) index" json:"txid"`
+	BlockHash     string      `xorm:"varchar(64) index" json:"blockhash"`
+	BlockOrder    uint64      `xorm:"bigint" json:"blockorder"`
+	TxHash        string      `xorm:"varchar(64)" json:"txhash"`
+	Size          int         `xorm:"int" json:"size"`
+	Version       uint32      `xorm:"int" json:"version"`
+	Locktime      uint64      `xorm:"bigint" json:"locktime"`
+	Timestamp     int64       `xorm:"bigint" json:"timestamp"`
+	Expire        uint64      `xorm:"bigint" json:"expire"`
+	Confirmations uint64      `xorm:"bigint" json:"confirmations"`
+	Txsvaild      bool        `xorm:"bool" json:"txsvaild"`
+	IsCoinbase    bool        `xorm:"bool" json:"iscoinbase"`
+	Vins          int         `xorm:"int" json:"vin"`
+	Vouts         int         `xorm:"int" json:"vout"`
+	TotalVin      uint64      `xorm:"bigint" json:"totalvin"`
+	TotalVout     uint64      `xorm:"bigint" json:"totalvout"`
+	Fees          uint64      `xorm:"bigint" json:"fees"`
+	Duplicate     bool        `xorm:"bool" json:"duplicate"`
+	Stat          stat.TxStat `xorm:"int" json:"stat"`
 }
 
 type Vinout struct {
-	Id                     uint64        `xorm:"bigint autoincr pk"`
-	TxId                   string        `xorm:"varchar(64) index"`
-	Type                   stat.TxType   `xorm:"int index"`
-	Number                 int           `xorm:"int index"`
-	Order                  uint64        `xorm:"bigint"`
-	Timestamp              int64         `xorm:"bigint"`
-	Address                string        `xorm:"varchar(35) index"`
-	Amount                 uint64        `xorm:"bigint"`
-	ScriptPubKey           *ScriptPubKey `xorm:"json"`
-	SpentTx                string        `xorm:"varchar(64)"`
-	SpentNumber            int           `xorm:"int"`
-	UnconfirmedSpentTx     string        `xorm:"varchar(64)"`
-	UnconfirmedSpentNumber int           `xorm:"int"`
-	SpentedTx              string        `xorm:"varchar(64) index(queryvin)"`
-	Vout                   int           `xorm:"int index(queryvin)"`
-	Sequence               uint64        `xorm:"bigint"`
-	ScriptSig              *ScriptSig    `xorm:"json"`
-	Stat                   stat.TxStat   `xorm:"stat"`
+	Id                     uint64        `xorm:"bigint autoincr pk" json:"id"`
+	TxId                   string        `xorm:"varchar(64) index" json:"txid"`
+	Type                   stat.TxType   `xorm:"int index" json:"type"`
+	Number                 int           `xorm:"int index" json:"number"`
+	Order                  uint64        `xorm:"bigint" json:"order"`
+	Timestamp              int64         `xorm:"bigint" json:"timestamp"`
+	Address                string        `xorm:"varchar(35) index" json:"address"`
+	Amount                 uint64        `xorm:"bigint" json:"amount"`
+	ScriptPubKey           *ScriptPubKey `xorm:"json" json:"scriptpubkey"`
+	SpentTx                string        `xorm:"varchar(64)" json:"spenttx"`
+	SpentNumber            int           `xorm:"int" json:"spentnumber"`
+	UnconfirmedSpentTx     string        `xorm:"varchar(64)" json:"unconfirmedspenttx"`
+	UnconfirmedSpentNumber int           `xorm:"int" json:"unconfirmedspentnumber"`
+	SpentedTx              string        `xorm:"varchar(64) index(queryvin)" json:"spentedtx"`
+	Vout                   int           `xorm:"int index(queryvin)" json:"vout"`
+	Sequence               uint64        `xorm:"bigint" json:"sequence"`
+	ScriptSig              *ScriptSig    `xorm:"json" json:"scriptsig"`
+	Stat                   stat.TxStat   `xorm:"stat" json:"stat"`
 }
 
 type ScriptPubKey struct {
-	Asm     string
-	Hex     string
-	ReqSigs int
-	Type    string
+	Asm     string `json:"asm"`
+	Hex     string `json:"hex"`
+	ReqSigs int    `json:"reqsigs"`
+	Type    string `json:"type"`
 }
 
 type ScriptSig struct {
-	Asm string
-	Hex string
+	Asm string `json:"asm"`
+	Hex string `json:"hex"`
 }

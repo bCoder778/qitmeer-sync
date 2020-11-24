@@ -65,90 +65,32 @@ func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vino
 		return fmt.Errorf("failed to seesion begin, %s", err.Error())
 	}
 
-	// 更新block
-	queryBlock := &types.Block{Hash: block.Hash}
-	if ok, err := sess.Exist(queryBlock); err != nil {
-		sess.Rollback()
-		return fmt.Errorf("faild to seesion exist block, %s", err.Error())
-	} else if ok {
-		if _, err := sess.Where("hash = ?", block.Hash).
-			Cols(`txvalid`, `confirmations`, `version`, `weight`, `height`, `tx_root`, `order`,
-				`transactions`, `state_root`, `bits`, `timestamp`, `parent_root`, `parents`, `children`,
-				`difficulty`, `pow_name`, `pow_type`, `nonce`, `edge_bits`, `circle_nonces`, `address`,
-				`amount`, `stat`).
-			Update(block); err != nil {
-			sess.Rollback()
-			return err
+	if err := updateBlock(sess, block); err != nil {
+		if err := sess.Rollback(); err != nil {
+			return fmt.Errorf("roll back failed! %s", err.Error())
 		}
-
-	} else {
-		if _, err := sess.Insert(block); err != nil {
-			sess.Rollback()
-			return err
-		}
+		return err
 	}
 
-	// 更新transaction
-	queryTx := &types.Transaction{}
-	for _, tx := range txs {
-		queryTx.TxId = tx.TxId
-		queryTx.BlockHash = tx.BlockHash
-		if ok, err := sess.Exist(queryTx); err != nil {
-			sess.Rollback()
-			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
-		} else if ok {
-			if _, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).
-				Cols(`block_order`, `tx_hash`, `size`, `version`, `locktime`,
-					`timestamp`, `expire`, `confirmations`, `txsvaild`, `is_coinbase`,
-					`vins`, `vouts`, `total_vin`, `total_vout`, `fees`, `duplicate`,
-					`stat`).
-				Update(tx); err != nil {
-				sess.Rollback()
-				return err
-			}
-		} else {
-			if _, err := sess.Insert(tx); err != nil {
-				sess.Rollback()
-				return err
-			}
+	if err := updateTransactions(sess, txs); err != nil {
+		if err := sess.Rollback(); err != nil {
+			return fmt.Errorf("roll back failed! %s", err.Error())
 		}
+		return err
 	}
 
-	// 更新spentedVouts
-	for _, vinout := range spentedVouts {
-		if _, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).
-			Cols("spent_tx", "spent_number", "unconfirmed_spent_tx", "unconfirmed_spent_number").
-			Update(vinout); err != nil {
-			sess.Rollback()
-			return err
+	if err := updateSpentedVinouts(sess, spentedVouts); err != nil {
+		if err := sess.Rollback(); err != nil {
+			return fmt.Errorf("roll back failed! %s", err.Error())
 		}
-
+		return err
 	}
 
-	// 更新vinouts
-	queryVinout := &types.Vinout{}
-	for _, vinout := range vinouts {
-		queryVinout.TxId = vinout.TxId
-		queryVinout.Type = vinout.Type
-		queryVinout.Number = vinout.Number
-		if ok, err := sess.Exist(queryVinout); err != nil {
-			sess.Rollback()
-			return fmt.Errorf("faild to seesion exist vinout, %s", err.Error())
-		} else if ok {
-			if _, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).
-				Cols(`order`, `timestamp`, `address`, `amount`, `script_pub_key`,
-					`spent_tx`, `spent_number`, `unconfirmed_spent_tx`, `unconfirmed_spent_number`,
-					`spented_tx`, `vout`, `sequence`, `script_sig`, `stat`).
-				Update(vinout); err != nil {
-				sess.Rollback()
-				return err
-			}
-		} else {
-			if _, err := sess.Insert(vinout); err != nil {
-				sess.Rollback()
-				return err
-			}
+	if err := updateVinouts(sess, vinouts); err != nil {
+		if err := sess.Rollback(); err != nil {
+			return fmt.Errorf("roll back failed! %s", err.Error())
 		}
+		return err
 	}
 
 	if err := sess.Commit(); err != nil {
@@ -165,71 +107,119 @@ func (d *DB) UpdateTransactionDatas(txs []*types.Transaction, vinouts []*types.V
 		return fmt.Errorf("failed to seesion begin, %s", err.Error())
 	}
 
+	if err := updateTransactions(sess, txs); err != nil {
+		if err := sess.Rollback(); err != nil {
+			return fmt.Errorf("roll back failed! %s", err.Error())
+		}
+		return err
+	}
+
+	if err := updateSpentedVinouts(sess, spentedVouts); err != nil {
+		if err := sess.Rollback(); err != nil {
+			return fmt.Errorf("roll back failed! %s", err.Error())
+		}
+		return err
+	}
+
+	if err := updateVinouts(sess, vinouts); err != nil {
+		if err := sess.Rollback(); err != nil {
+			return fmt.Errorf("roll back failed! %s", err.Error())
+		}
+		return err
+	}
+
+	if err := sess.Commit(); err != nil {
+		return fmt.Errorf("failed to seesion coimmit, %s", err.Error())
+	}
+	return nil
+}
+
+func updateVinouts(sess *xorm.Session, vinouts []*types.Vinout) error {
+	// 更新vinouts
+
+	cols := []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`, `spented_tx`, `vout`, `sequence`, `script_sig`, `stat`}
+	for _, vinout := range vinouts {
+		queryVinout := &types.Vinout{}
+		if ok, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).Get(queryVinout); err != nil {
+			return fmt.Errorf("faild to seesion exist vinout, %s", err.Error())
+		} else if ok {
+			if queryVinout.SpentTx != "" {
+				cols = []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`,
+					`spent_tx`, `spent_number`, `spented_tx`, `vout`,
+					`sequence`, `script_sig`, `stat`}
+			} else if queryVinout.SpentTx == "" && queryVinout.UnconfirmedSpentTx != "" {
+				cols = []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`,
+					`unconfirmed_spent_tx`, `unconfirmed_spent_number`, `spented_tx`, `vout`,
+					`sequence`, `script_sig`, `stat`}
+			}
+
+			if _, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).
+				Cols(cols...).Update(vinout); err != nil {
+				return err
+			}
+		} else {
+			if _, err := sess.Insert(vinout); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func updateSpentedVinouts(sess *xorm.Session, vinouts []*types.Vinout) error {
+	// 更新spentedVouts
+	for _, vinout := range vinouts {
+		if _, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).
+			Cols("spent_tx", "spent_number", "unconfirmed_spent_tx", "unconfirmed_spent_number").Update(vinout); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func updateTransactions(sess *xorm.Session, txs []*types.Transaction) error {
 	// 更新transaction
 	queryTx := &types.Transaction{}
 	for _, tx := range txs {
 		queryTx.TxId = tx.TxId
 		queryTx.BlockHash = tx.BlockHash
 		if ok, err := sess.Exist(queryTx); err != nil {
-			sess.Rollback()
 			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
 		} else if ok {
 			if _, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).
 				Cols(`block_order`, `tx_hash`, `size`, `version`, `locktime`,
 					`timestamp`, `expire`, `confirmations`, `txsvaild`, `is_coinbase`,
 					`vins`, `vouts`, `total_vin`, `total_vout`, `fees`, `duplicate`,
-					`stat`).
-				Update(tx); err != nil {
-				sess.Rollback()
+					`stat`).Update(tx); err != nil {
 				return err
 			}
 		} else {
 			if _, err := sess.Insert(tx); err != nil {
-				sess.Rollback()
 				return err
 			}
 		}
 	}
+	return nil
+}
 
-	// 更新spentedVouts
-	for _, vinout := range spentedVouts {
-		if _, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).
-			Cols("spent_tx", "spent_number", "unconfirmed_spent_tx", "unconfirmed_spent_number").
-			Update(vinout); err != nil {
-			sess.Rollback()
+func updateBlock(sess *xorm.Session, block *types.Block) error {
+	// 更新block
+	queryBlock := &types.Block{Hash: block.Hash}
+	if ok, err := sess.Exist(queryBlock); err != nil {
+		return fmt.Errorf("faild to seesion exist block, %s", err.Error())
+	} else if ok {
+		if _, err := sess.Where("hash = ?", block.Hash).
+			Cols(`txvalid`, `confirmations`, `version`, `weight`, `height`, `tx_root`, `order`,
+				`transactions`, `state_root`, `bits`, `timestamp`, `parent_root`, `parents`, `children`,
+				`difficulty`, `pow_name`, `pow_type`, `nonce`, `edge_bits`, `circle_nonces`, `address`,
+				`amount`, `stat`).Update(block); err != nil {
 			return err
 		}
 
-	}
-
-	// 更新vinouts
-	queryVinout := &types.Vinout{}
-	for _, vinout := range vinouts {
-		queryVinout.TxId = vinout.TxId
-		queryVinout.Type = vinout.Type
-		queryVinout.Number = vinout.Number
-		if ok, err := sess.Exist(queryVinout); err != nil {
-			sess.Rollback()
-			return fmt.Errorf("faild to seesion exist vinout, %s", err.Error())
-		} else if ok {
-			if _, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).
-				Cols(`order`, `timestamp`, `address`, `amount`, `script_pub_key`,
-					`spent_tx`, `spent_number`, `unconfirmed_spent_tx`, `unconfirmed_spent_number`,
-					`spented_tx`, `vout`, `sequence`, `script_sig`, `stat`).
-				Update(vinout); err != nil {
-				sess.Rollback()
-				return err
-			}
-		} else {
-			if _, err := sess.Insert(vinout); err != nil {
-				sess.Rollback()
-				return err
-			}
+	} else {
+		if _, err := sess.Insert(block); err != nil {
+			return err
 		}
-	}
-
-	if err := sess.Commit(); err != nil {
-		return fmt.Errorf("failed to seesion coimmit, %s", err.Error())
 	}
 	return nil
 }
@@ -242,16 +232,13 @@ func (d *DB) UpdateTransaction(tx *types.Transaction) error {
 	sess := d.engine.NewSession()
 	defer sess.Close()
 
-	if n, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).
+	if _, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).
 		Cols(`block_order`, `tx_hash`, `size`, `version`, `locktime`,
 			`timestamp`, `expire`, `confirmations`, `txsvaild`, `is_coinbase`,
 			`vins`, `vouts`, `total_vin`, `total_vout`, `fees`, `duplicate`,
 			`stat`).
 		Update(tx); err != nil {
-		sess.Rollback()
 		return err
-	} else {
-		fmt.Println(n)
 	}
 	return nil
 }

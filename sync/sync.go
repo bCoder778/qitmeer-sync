@@ -104,7 +104,7 @@ func (qs *QitmeerSync) syncBlock() {
 }
 
 func (qs *QitmeerSync) updateUnconfirmedBlock() {
-	ticker := time.NewTicker(time.Second * 60 * 2)
+	ticker := time.NewTicker(time.Second * 60 * 1)
 	defer func() {
 		ticker.Stop()
 		qs.wg.Done()
@@ -345,7 +345,7 @@ func (qs *QitmeerSync) saveUnconfirmedBlock(group *sync.WaitGroup) {
 		case block := <-qs.uncfmBlockCh:
 			if err := qs.storage.SaveBlock(block); err != nil {
 				log.Mailf(config.Setting.Email.Title, "Failed to save unconfirmed block %v, err:%v", block, err)
-				qs.Stop()
+				qs.reUncfmBlockSync <- struct{}{}
 				return
 			}
 			log.Infof("Save unconfirmed block %d", block.Order)
@@ -378,8 +378,20 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction(group *sync.WaitGroup) {
 				time.Sleep(time.Second * waitBlockTime)
 				continue
 			}
-			rpcTx.BlockOrder = tx.BlockOrder
-			qs.uncfmTxCh <- rpcTx
+			if rpcTx.BlockHash != "" {
+				block, err := qs.rpc.GetBlockByHash(rpcTx.BlockHash)
+				if err != nil {
+					log.Warnf("Request getBlock %d rpc failed! err:%v", tx.BlockOrder, err)
+					time.Sleep(time.Second * waitBlockTime)
+					continue
+				}
+				if block.Order < qs.storage.LastOrder() {
+					rpcTx.BlockOrder = block.Order
+					qs.uncfmTxCh <- rpcTx
+				} else {
+					log.Debugf("Update unconfirmed transaction %v, order=%d", rpcTx, block.Order)
+				}
+			}
 		}
 	}
 	qs.reUncfmTxSync <- struct{}{}

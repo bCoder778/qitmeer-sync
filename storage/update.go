@@ -19,8 +19,8 @@ type transactionData struct {
 }
 
 func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
-	if rpcBlock.Order != 0 {
-
+	if rpcBlock.Order == 12409 {
+		fmt.Println(1)
 	}
 
 	block := s.crateBlock(rpcBlock)
@@ -110,7 +110,6 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 			)
 			if vin.Coinbase != "" {
 				address = "coinbase"
-
 			} else {
 				vout, err := s.db.GetVout(vin.Txid, vin.Vout)
 				if err != nil {
