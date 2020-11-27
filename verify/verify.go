@@ -140,9 +140,12 @@ func (qv *QitmeerVerify) VerifyQitmeer(rpcBlock *rpc.Block) (bool, error) {
 	if rpcBlock.Order == 0 {
 		return true, nil
 	}
+
 	if qv.conf.UTXO {
-		utxo := qv.db.GetAllUtxo()
-		count := qv.db.GetConfirmedBlockCount()
+		utxo, count, err := qv.db.GetConfirmedUtxoAndBlockCount()
+		if err != nil {
+			return false, err
+		}
 		if ok, err := qv.verifyAllAccount(uint64(utxo), count); !ok {
 			return false, err
 		}
@@ -152,6 +155,5 @@ func (qv *QitmeerVerify) VerifyQitmeer(rpcBlock *rpc.Block) (bool, error) {
 			return false, err
 		}
 	}
-
 	return true, nil
 }

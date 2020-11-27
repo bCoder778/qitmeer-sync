@@ -6,7 +6,9 @@ import (
 )
 
 func (d *DB) GetTransaction(txId string, blockHash string) (*types.Transaction, error) {
-	return nil, nil
+	tx := &types.Transaction{}
+	_, err := d.engine.Table(new(types.Transaction)).Where("tx_id = ? and block_hash = ?", txId, blockHash).Get(tx)
+	return tx, err
 }
 
 func (d *DB) GetVout(txId string, vout int) (*types.Vinout, error) {
@@ -27,12 +29,24 @@ func (d *DB) GetLastUnconfirmedOrder() (uint64, error) {
 	return block.Order, err
 }
 
-func (d *DB) GetAllUtxo() float64 {
-	amount, _ := d.engine.Where("spent_tx = ? and type = ? and stat = ?", "", stat.TX_Vout, stat.TX_Confirmed).Sum(new(types.Vinout), "amount")
+func (d *DB) GetConfirmedUtxo() float64 {
+	amount, _ := d.engine.Where("spent_tx = ? and type = ? and stat = ? and confirmations > ?", "", stat.TX_Vout, stat.TX_Confirmed, stat.Block_Confirmed_Value).Sum(new(types.Vinout), "amount")
 	return amount
 }
 
 func (d *DB) GetConfirmedBlockCount() int64 {
 	count, _ := d.engine.Table(new(types.Block)).Where("stat = ?", stat.Block_Confirmed).Count()
 	return count
+}
+
+func (d *DB) GetConfirmedUtxoAndBlockCount() (float64, int64, error) {
+	sess := d.engine.NewSession()
+	defer sess.Close()
+
+	utxo, err := sess.Where("spent_tx = ? and type = ? and stat = ? and confirmations > ?", "", stat.TX_Vout, stat.TX_Confirmed, stat.Block_Confirmed_Value).Sum(new(types.Vinout), "amount")
+	if err != nil {
+		return 0, 0, err
+	}
+	count, err := d.engine.Table(new(types.Block)).Where("stat = ?", stat.Block_Confirmed).Count()
+	return utxo, count, err
 }

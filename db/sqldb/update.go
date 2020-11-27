@@ -114,14 +114,14 @@ func (d *DB) UpdateTransactionDatas(txs []*types.Transaction, vinouts []*types.V
 		return err
 	}
 
-	if err := updateSpentedVinouts(sess, spentedVouts); err != nil {
+	if err := updateVinouts(sess, vinouts); err != nil {
 		if err := sess.Rollback(); err != nil {
 			return fmt.Errorf("roll back failed! %s", err.Error())
 		}
 		return err
 	}
 
-	if err := updateVinouts(sess, vinouts); err != nil {
+	if err := updateSpentedVinouts(sess, spentedVouts); err != nil {
 		if err := sess.Rollback(); err != nil {
 			return fmt.Errorf("roll back failed! %s", err.Error())
 		}
@@ -137,20 +137,20 @@ func (d *DB) UpdateTransactionDatas(txs []*types.Transaction, vinouts []*types.V
 func updateVinouts(sess *xorm.Session, vinouts []*types.Vinout) error {
 	// 更新vinouts
 
-	cols := []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`, `spented_tx`, `vout`, `sequence`, `script_sig`, `stat`}
 	for _, vinout := range vinouts {
 		queryVinout := &types.Vinout{}
+		cols := []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`, `spented_tx`, `vout`, "confirmations", `sequence`, `script_sig`, `stat`}
 		if ok, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).Get(queryVinout); err != nil {
 			return fmt.Errorf("faild to seesion exist vinout, %s", err.Error())
 		} else if ok {
-			if queryVinout.SpentTx != "" {
+			if vinout.SpentTx != "" {
 				cols = []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`,
-					`spent_tx`, `spent_number`, `spented_tx`, `vout`,
+					`spent_tx`, `spent_number`, `spented_tx`, `vout`, "confirmations",
 					`sequence`, `script_sig`, `stat`}
-			} else if queryVinout.SpentTx == "" && queryVinout.UnconfirmedSpentTx != "" {
+			} else if vinout.SpentTx == "" && vinout.UnconfirmedSpentTx != "" {
 				cols = []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`,
 					`unconfirmed_spent_tx`, `unconfirmed_spent_number`, `spented_tx`, `vout`,
-					`sequence`, `script_sig`, `stat`}
+					"confirmations", `sequence`, `script_sig`, `stat`}
 			}
 
 			if _, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).
@@ -198,6 +198,7 @@ func updateTransactions(sess *xorm.Session, txs []*types.Transaction) error {
 				return err
 			}
 		}
+
 	}
 	return nil
 }
@@ -241,6 +242,12 @@ func (d *DB) UpdateTransaction(tx *types.Transaction) error {
 		return err
 	}
 	return nil
+}
+
+func (d *DB) DeleteTransaction(tx *types.Transaction) error {
+	var deleted types.Transaction
+	_, err := d.engine.Id(tx.Id).Delete(&deleted)
+	return err
 }
 
 func (d *DB) UpdateVinout(inout *types.Vinout) error {

@@ -19,10 +19,9 @@ type transactionData struct {
 }
 
 func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
-	if rpcBlock.Order == 12409 {
+	if rpcBlock.Order == 466091 {
 		fmt.Println(1)
 	}
-
 	block := s.crateBlock(rpcBlock)
 	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.IsBlue)
 	if err != nil {
@@ -44,7 +43,19 @@ func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order uint64, color in
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	return s.db.UpdateTransactionDatas(txData.Transactions, txData.Vinouts, txData.SpentedVouts)
+	if err := s.db.UpdateTransactionDatas(txData.Transactions, txData.Vinouts, txData.SpentedVouts); err != nil {
+		return err
+	}
+	// 删除Mem交易
+	for _, tx := range txData.Transactions {
+		if tx.Stat != stat.TX_Memry {
+			tx, _ := s.db.GetTransaction(tx.TxId, "")
+			if tx.TxId != "" && tx.Stat == stat.TX_Memry {
+				s.db.DeleteTransaction(tx)
+			}
+		}
+	}
+	return nil
 }
 
 func (s *Storage) UpdateTransactionStat(txId string, stat stat.TxStat) error {
@@ -115,6 +126,12 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 				if err != nil {
 					return nil, fmt.Errorf("query txid%s, vout=%d failed!", vin.Txid, vin.Vout)
 				}
+				// 可能引用同一区块vout
+				if vout.TxId == "" {
+					if vout, err = s.finVout(vin.Txid, vin.Vout, vinouts); err != nil {
+						return nil, fmt.Errorf("query txid%s, vout=%d failed!", vin.Txid, vin.Vout)
+					}
+				}
 				// 添加需要更新的被花费vout
 				if status == stat.TX_Confirmed {
 					vout.SpentTx = rpcTx.Txid
@@ -149,6 +166,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 					SpentNumber:            0,
 					UnconfirmedSpentTx:     "",
 					UnconfirmedSpentNumber: 0,
+					Confirmations:          rpcTx.Confirmations,
 					Stat:                   status,
 					Timestamp:              rpcTx.Timestamp.Unix(),
 				}
@@ -178,6 +196,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 				SpentNumber:            0,
 				UnconfirmedSpentTx:     "",
 				UnconfirmedSpentNumber: 0,
+				Confirmations:          rpcTx.Confirmations,
 				Stat:                   status,
 				Timestamp:              rpcTx.Timestamp.Unix(),
 			}
@@ -212,6 +231,15 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 	}
 
 	return &transactionData{txs, vinouts, spentedVouts}, nil
+}
+
+func (s *Storage) finVout(txId string, vout int, vinouts []*types.Vinout) (*types.Vinout, error) {
+	for _, vinout := range vinouts {
+		if vinout.Type == stat.TX_Vout && vinout.TxId == txId && vinout.Number == vout {
+			return vinout, nil
+		}
+	}
+	return nil, fmt.Errorf("vout is not exist")
 }
 
 func (s *Storage) BlockMiner(rpcBlock *rpc.Block) *types.Miner {

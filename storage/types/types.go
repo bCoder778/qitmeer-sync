@@ -76,6 +76,7 @@ type Vinout struct {
 	UnconfirmedSpentNumber int           `xorm:"int" json:"unconfirmedspentnumber"`
 	SpentedTx              string        `xorm:"varchar(64) index(queryvin)" json:"spentedtx"`
 	Vout                   int           `xorm:"int index(queryvin)" json:"vout"`
+	Confirmations          uint64        `xorm:"bigint" json:"confirmations"`
 	Sequence               uint64        `xorm:"bigint" json:"sequence"`
 	ScriptSig              *ScriptSig    `xorm:"json" json:"scriptsig"`
 	Stat                   stat.TxStat   `xorm:"stat" json:"stat"`

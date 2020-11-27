@@ -23,6 +23,8 @@ type IUpdate interface {
 	UpdateBlock(block *types.Block) error
 	UpdateTransaction(tx *types.Transaction) error
 	UpdateVinout(inout *types.Vinout) error
+
+	DeleteTransaction(tx *types.Transaction) error
 }
 
 type IGet interface {
@@ -30,8 +32,9 @@ type IGet interface {
 	GetLastUnconfirmedOrder() (uint64, error)
 	GetTransaction(txId string, blockHash string) (*types.Transaction, error)
 	GetVout(txId string, vout int) (*types.Vinout, error)
-	GetAllUtxo() float64
+	GetConfirmedUtxo() float64
 	GetConfirmedBlockCount() int64
+	GetConfirmedUtxoAndBlockCount() (float64, int64, error)
 }
 
 type IQuery interface {
