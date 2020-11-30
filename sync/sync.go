@@ -173,7 +173,7 @@ func (qs *QitmeerSync) syncTxPool() {
 			log.Info("Shutdown sync tx pool")
 			return
 		case <-ticker.C:
-			log.Info("Start sync tx pool")
+			//log.Info("Start sync tx pool")
 			txIds, err := qs.rpc.GetMemoryPool()
 			if err != nil {
 				log.Warnf("Request getMemoryPool rpc failed! err:%v", err)
