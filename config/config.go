@@ -69,8 +69,9 @@ type EMail struct {
 }
 
 type Verify struct {
-	UTXO bool `toml:"utxo"`
-	Fees bool `toml:"fees"`
+	UTXO     bool   `toml:"utxo"`
+	Fees     bool   `toml:"fees"`
+	Interval uint64 `toml:"interval"`
 }
 
 func Exist(fileName string) bool {

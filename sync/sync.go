@@ -27,7 +27,7 @@ type QitmeerSync struct {
 	reUncfmTxSync    chan struct{}
 	blockCh          chan *rpc.Block
 	uncfmBlockCh     chan *rpc.Block
-	uncfmTxCh        chan *rpc.Transaction
+	uncfmTxBlockCh   chan *rpc.Block
 	interupt         chan struct{}
 	wg               sync.WaitGroup
 	ve               *verify.QitmeerVerify
@@ -290,10 +290,8 @@ func (qs *QitmeerSync) saveBlock(group *sync.WaitGroup) {
 			}
 			log.Infof("Save block %d", block.Order)
 			if _, err := qs.ve.VerifyQitmeer(block); err != nil {
-				// 验证失败，退出同步程序
+				// 验证失败
 				log.Mailf(config.Setting.Email.Title, "Failed to verify block %d %s, err:%v", block.Order, block.Hash, err)
-				qs.Stop()
-				return
 			}
 		case <-qs.interupt:
 			log.Info("Shutdown save block")
@@ -385,9 +383,16 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction(group *sync.WaitGroup) {
 					time.Sleep(time.Second * waitBlockTime)
 					continue
 				}
+				color, err := qs.rpc.IsBlue(rpcTx.BlockHash)
+				if err != nil {
+					log.Warnf("Request block isBlue %d failed! %s", rpcTx.BlockOrder, err.Error())
+					time.Sleep(time.Second * waitBlockTime)
+					continue
+				}
+				// 重新更新整个块而不是单个交易，以免verify block 失败
 				if block.Order < qs.storage.LastOrder() {
-					rpcTx.BlockOrder = block.Order
-					qs.uncfmTxCh <- rpcTx
+					block.IsBlue = color
+					qs.uncfmTxBlockCh <- block
 				}
 			}
 		}
@@ -400,9 +405,9 @@ func (qs *QitmeerSync) saveUnconfirmedTransaction(group *sync.WaitGroup) {
 
 	for {
 		select {
-		case tx := <-qs.uncfmTxCh:
-			if err := qs.storage.SaveTransaction(tx, tx.BlockOrder, 1); err != nil {
-				log.Mailf(config.Setting.Email.Title, "Failed to save unconfirmed transaction %v, err:%v", tx, err)
+		case block := <-qs.uncfmTxBlockCh:
+			if err := qs.storage.SaveBlock(block); err != nil {
+				log.Mailf(config.Setting.Email.Title, "Failed to save unconfirmed transaction block %d, err:%v", block.Order, err)
 				qs.reUncfmTxSync <- struct{}{}
 				return
 			}
@@ -431,10 +436,10 @@ func (qs *QitmeerSync) initUncfmBlockCh() {
 }
 
 func (qs *QitmeerSync) initUncfmTransactionCh() {
-	if qs.uncfmTxCh != nil {
-		close(qs.uncfmTxCh)
+	if qs.uncfmTxBlockCh != nil {
+		close(qs.uncfmTxBlockCh)
 	}
-	qs.uncfmTxCh = make(chan *rpc.Transaction, 100)
+	qs.uncfmTxBlockCh = make(chan *rpc.Block, 100)
 }
 
 func isExist(err error) bool {

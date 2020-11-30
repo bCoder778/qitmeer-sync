@@ -15,7 +15,7 @@ dbname="qitmeersync"
 # console=12 | file=11
 mode=12
 # debug=0 | info=1 | warn=2 | fail=3 | error=4 | email=5
-level=1
+level=0
 
 [email]
 title="qitmeer-sync"
@@ -28,7 +28,8 @@ to=[""]
 [verify]
 utxo=true
 fees=true
+interval=10
 
 [resources]
-cpu-number=4
+cpu-number=16
 gc-percent=20

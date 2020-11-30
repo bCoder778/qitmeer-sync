@@ -140,9 +140,11 @@ func (qv *QitmeerVerify) VerifyQitmeer(rpcBlock *rpc.Block) (bool, error) {
 	if rpcBlock.Order == 0 {
 		return true, nil
 	}
-
+	if rpcBlock.Order%qv.conf.Interval != 0 {
+		return true, nil
+	}
 	if qv.conf.UTXO {
-		utxo, count, err := qv.db.GetConfirmedUtxoAndBlockCount()
+		utxo, count, err := qv.db.GetAllUtxoAndBlockCount()
 		if err != nil {
 			return false, err
 		}

@@ -39,14 +39,14 @@ func (d *DB) GetConfirmedBlockCount() int64 {
 	return count
 }
 
-func (d *DB) GetConfirmedUtxoAndBlockCount() (float64, int64, error) {
+func (d *DB) GetAllUtxoAndBlockCount() (float64, int64, error) {
 	sess := d.engine.NewSession()
 	defer sess.Close()
 
-	utxo, err := sess.Where("spent_tx = ? and type = ? and stat = ? and confirmations > ?", "", stat.TX_Vout, stat.TX_Confirmed, stat.Block_Confirmed_Value).Sum(new(types.Vinout), "amount")
+	utxo, err := sess.Where("spent_tx = ? and type = ? and stat in (?, ?)", "", stat.TX_Vout, stat.TX_Confirmed, stat.TX_Unconfirmed).Sum(new(types.Vinout), "amount")
 	if err != nil {
 		return 0, 0, err
 	}
-	count, err := d.engine.Table(new(types.Block)).Where("stat = ?", stat.Block_Confirmed).Count()
+	count, err := d.engine.Table(new(types.Block)).Where("stat in (?, ?)", stat.Block_Confirmed, stat.Block_Unconfirmed).Count()
 	return utxo, count, err
 }

@@ -34,7 +34,7 @@ type IGet interface {
 	GetVout(txId string, vout int) (*types.Vinout, error)
 	GetConfirmedUtxo() float64
 	GetConfirmedBlockCount() int64
-	GetConfirmedUtxoAndBlockCount() (float64, int64, error)
+	GetAllUtxoAndBlockCount() (float64, int64, error)
 }
 
 type IQuery interface {

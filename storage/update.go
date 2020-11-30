@@ -19,9 +19,6 @@ type transactionData struct {
 }
 
 func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
-	if rpcBlock.Order == 466091 {
-		fmt.Println(1)
-	}
 	block := s.crateBlock(rpcBlock)
 	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.IsBlue)
 	if err != nil {
