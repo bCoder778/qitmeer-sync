@@ -260,13 +260,13 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 		default:
 			block, err := qs.rpc.GetBlock(start)
 			if err != nil {
-				log.Warnf("Request block %d failed! %s", start, err.Error())
+				log.Debugf("Request block %d failed! %s", start, err.Error())
 				time.Sleep(time.Second * waitBlockTime)
 				continue
 			}
 			color, err := qs.rpc.IsBlue(block.Hash)
 			if err != nil {
-				log.Warnf("Request block %d isBlue failed! %s", start, err.Error())
+				log.Debugf("Request block %d isBlue failed! %s", start, err.Error())
 				time.Sleep(time.Second * waitBlockTime)
 				continue
 			}
@@ -317,13 +317,13 @@ func (qs *QitmeerSync) requestUnconfirmedBlock(group *sync.WaitGroup) {
 			default:
 				block, err := qs.rpc.GetBlock(unOrder)
 				if err != nil {
-					log.Warnf("Request block %d failed! %s", unOrder, err.Error())
+					log.Debugf("Request block %d failed! %s", unOrder, err.Error())
 					time.Sleep(time.Second * waitBlockTime)
 					continue
 				}
 				color, err := qs.rpc.IsBlue(block.Hash)
 				if err != nil {
-					log.Warnf("Request block isBlue %d failed! %s", unOrder, err.Error())
+					log.Debugf("Request block isBlue %d failed! %s", unOrder, err.Error())
 					time.Sleep(time.Second * waitBlockTime)
 					continue
 				}
@@ -372,20 +372,20 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction(group *sync.WaitGroup) {
 		default:
 			rpcTx, err := qs.rpc.GetTransaction(tx.TxId)
 			if err != nil {
-				log.Warnf("Request getTransaction %d rpc failed! err:%v", tx.BlockOrder, err)
+				log.Debugf("Request getTransaction %d rpc failed! err:%v", tx.BlockOrder, err)
 				time.Sleep(time.Second * waitBlockTime)
 				continue
 			}
 			if rpcTx.BlockHash != "" {
 				block, err := qs.rpc.GetBlockByHash(rpcTx.BlockHash)
 				if err != nil {
-					log.Warnf("Request getBlock %d rpc failed! err:%v", tx.BlockOrder, err)
+					log.Debugf("Request getBlock %d rpc failed! err:%v", tx.BlockOrder, err)
 					time.Sleep(time.Second * waitBlockTime)
 					continue
 				}
 				color, err := qs.rpc.IsBlue(rpcTx.BlockHash)
 				if err != nil {
-					log.Warnf("Request block isBlue %d failed! %s", rpcTx.BlockOrder, err.Error())
+					log.Debugf("Request block isBlue %d failed! %s", rpcTx.BlockOrder, err.Error())
 					time.Sleep(time.Second * waitBlockTime)
 					continue
 				}
