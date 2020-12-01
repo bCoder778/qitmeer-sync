@@ -292,6 +292,8 @@ func (qs *QitmeerSync) saveBlock(group *sync.WaitGroup) {
 			if _, err := qs.ve.VerifyQitmeer(block); err != nil {
 				// 验证失败
 				log.Mailf(config.Setting.Email.Title, "Failed to verify block %d %s, err:%v", block.Order, block.Hash, err)
+				/*qs.Stop()
+				return*/
 			}
 		case <-qs.interupt:
 			log.Info("Shutdown save block")

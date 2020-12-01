@@ -43,7 +43,7 @@ func (d *DB) GetAllUtxoAndBlockCount() (float64, int64, error) {
 	sess := d.engine.NewSession()
 	defer sess.Close()
 
-	utxo, err := sess.Where("spent_tx = ? and type = ? and stat in (?, ?)", "", stat.TX_Vout, stat.TX_Confirmed, stat.TX_Unconfirmed).Sum(new(types.Vinout), "amount")
+	utxo, err := sess.Where("spent_tx = ? and unconfirmed_spent_tx = ? and type = ? and stat != ?", "", "", stat.TX_Vout, stat.TX_Failed).Sum(new(types.Vinout), "amount")
 	if err != nil {
 		return 0, 0, err
 	}
