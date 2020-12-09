@@ -28,7 +28,7 @@ to=[""]
 [verify]
 utxo=true
 fees=true
-interval=1
+interval=10
 
 [resources]
 cpu-number=16

@@ -63,9 +63,9 @@ func (d *DB) GetConfirmedUtxoAndBlockCount() (float64, int64, error) {
 		params = append(params, txId)
 	}
 
-	utxo, err := sess.Where("type = ? and confirmations > ? and stat = ?", stat.TX_Vout, stat.Block_Confirmed_Value, stat.TX_Confirmed).
-		In("spent_tx", params...).Or("type = ? and confirmations > ? and stat = ? and spent_tx = ?",
-		stat.TX_Vout, stat.Block_Confirmed_Value, stat.TX_Confirmed, "").Sum(new(types.Vinout), "amount")
+	utxo, err := sess.In("spent_tx", params...).Or("spent_tx = ?", "").
+		And("type = ? and confirmations > ? and stat = ?", stat.TX_Vout, stat.Block_Confirmed_Value, stat.TX_Confirmed).
+		Sum(new(types.Vinout), "amount")
 
 	count, err := d.engine.Table(new(types.Block)).Where("stat = ?", stat.Block_Confirmed).Count()
 	return utxo, count, err
