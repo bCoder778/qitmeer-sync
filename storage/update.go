@@ -52,6 +52,19 @@ func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order uint64, color in
 			}
 		}
 	}
+
+	// 删除历史余留Mem交易
+	memTxs, err := s.db.QueryMemTransaction()
+	for _, memTx := range memTxs {
+		txs, _ := s.db.QueryTransactions(memTx.TxId)
+		if len(txs) > 1 {
+			for _, tx := range txs {
+				if tx.Stat != stat.TX_Memry {
+					s.db.DeleteTransaction(&memTx)
+				}
+			}
+		}
+	}
 	return nil
 }
 
