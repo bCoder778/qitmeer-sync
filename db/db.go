@@ -35,6 +35,7 @@ type IGet interface {
 	GetConfirmedUtxo() float64
 	GetConfirmedBlockCount() int64
 	GetAllUtxoAndBlockCount() (float64, int64, error)
+	GetConfirmedUtxoAndBlockCount() (float64, int64, error)
 }
 
 type IQuery interface {

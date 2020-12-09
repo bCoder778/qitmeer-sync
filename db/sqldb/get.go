@@ -50,3 +50,23 @@ func (d *DB) GetAllUtxoAndBlockCount() (float64, int64, error) {
 	count, err := d.engine.Table(new(types.Block)).Where("stat in (?, ?)", stat.Block_Confirmed, stat.Block_Unconfirmed).Count()
 	return utxo, count, err
 }
+
+func (d *DB) GetConfirmedUtxoAndBlockCount() (float64, int64, error) {
+	sess := d.engine.NewSession()
+	defer sess.Close()
+
+	txIds := []string{}
+	sess.Table(new(types.Vinout)).Select("DISTINCT(tx_id)").Where("confirmations <= ?", stat.Block_Confirmed_Value).Find(&txIds)
+
+	params := []interface{}{}
+	for _, txId := range txIds {
+		params = append(params, txId)
+	}
+
+	utxo, err := sess.Where("type = ? and confirmations > ? and stat = ?", stat.TX_Vout, stat.Block_Confirmed_Value, stat.TX_Confirmed).
+		In("spent_tx", params...).Or("type = ? and confirmations > ? and stat = ? and spent_tx = ?",
+		stat.TX_Vout, stat.Block_Confirmed_Value, stat.TX_Confirmed, "").Sum(new(types.Vinout), "amount")
+
+	count, err := d.engine.Table(new(types.Block)).Where("stat = ?", stat.Block_Confirmed).Count()
+	return utxo, count, err
+}

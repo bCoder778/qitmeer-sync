@@ -144,7 +144,7 @@ func (qv *QitmeerVerify) VerifyQitmeer(rpcBlock *rpc.Block) (bool, error) {
 		return true, nil
 	}
 	if qv.conf.UTXO {
-		utxo, count, err := qv.db.GetAllUtxoAndBlockCount()
+		utxo, count, err := qv.db.GetConfirmedUtxoAndBlockCount()
 		if err != nil {
 			return false, err
 		}

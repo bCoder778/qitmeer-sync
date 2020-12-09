@@ -31,6 +31,7 @@ type QitmeerSync struct {
 	interupt         chan struct{}
 	wg               sync.WaitGroup
 	ve               *verify.QitmeerVerify
+	verifyFiledCount int
 }
 
 func NewQitmeerSync() (*QitmeerSync, error) {
@@ -290,10 +291,16 @@ func (qs *QitmeerSync) saveBlock(group *sync.WaitGroup) {
 			}
 			log.Infof("Save block %d", block.Order)
 			if _, err := qs.ve.VerifyQitmeer(block); err != nil {
-				// 验证失败
 				log.Mailf(config.Setting.Email.Title, "Failed to verify block %d %s, err:%v", block.Order, block.Hash, err)
-				/*qs.Stop()
-				return*/
+				// 验证失败
+				/*		qs.verifyFiledCount++
+						// 由于交易池中的交易会造成暂时的验证失败，所以当多次一直验证失败，才发送邮件
+						if qs.verifyFiledCount >= 10 {
+							log.Mailf(config.Setting.Email.Title, "Failed to verify block %d 10 times %s, err:%v", block.Order, block.Hash, err)
+							qs.verifyFiledCount = 0
+						}*/
+				qs.Stop()
+				return
 			}
 		case <-qs.interupt:
 			log.Info("Shutdown save block")

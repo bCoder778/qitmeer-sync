@@ -32,5 +32,4 @@ fi
 cd ${ROOT_DIR} && GOOS=linux GOARCH=amd64 go build -ldflags "$LDFlags" -o ${ROOT_DIR}/bin/linux/qitmeer-sync &&
 cd ${ROOT_DIR} && GOOS=darwin GOARCH=amd64 go build -ldflags "$LDFlags" -o ${ROOT_DIR}/bin/darwin/qitmeer-sync &&
 ls -lrt ${ROOT_DIR}/bin &&
-cd ${ROOT_DIR} && ./bin/darwin/qitmeer-sync -v &&
 echo 'build done.'
