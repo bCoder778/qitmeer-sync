@@ -78,8 +78,9 @@ func (c *Client) SendTransaction(tx string) (string, error) {
 	if resp.Error != nil {
 		return resp.Error.Message, errors.New(resp.Error.Message)
 	}
-	txId := string(resp.Result)
-	return txId, nil
+	txid := ""
+	json.Unmarshal(resp.Result, &txid)
+	return txid, nil
 }
 
 func (c *Client) GetTransaction(txId string) (*Transaction, error) {
