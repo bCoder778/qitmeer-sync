@@ -57,6 +57,7 @@ type Resources struct {
 type Log struct {
 	Mode  log.Mode  `toml:"mode"`
 	Level log.Level `toml:"level"`
+	Path  string    `toml:"path"`
 }
 
 type EMail struct {

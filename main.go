@@ -60,6 +60,7 @@ func runSync() {
 	log.SetOption(&log.Option{
 		LogLevel: config.Setting.Log.Level,
 		Mode:     config.Setting.Log.Mode,
+		Path:     config.Setting.Log.Path,
 		Email: &log.EMailOption{
 			User:   config.Setting.Email.User,
 			Pass:   config.Setting.Email.Pass,

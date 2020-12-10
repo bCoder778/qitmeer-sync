@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/bCoder778/log v0.0.0-20200815025303-b2d7a30e10e7
+	github.com/bCoder778/log v0.1.3
 	github.com/denisenkom/go-mssqldb v0.9.0
 	github.com/go-gomail/gomail v0.0.0-20160411212932-81ebce5c23df // indirect
 	github.com/go-sql-driver/mysql v1.5.0
