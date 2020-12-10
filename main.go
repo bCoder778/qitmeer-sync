@@ -20,8 +20,9 @@ func main() {
 }
 
 func dealCommand() {
-	v := flag.Bool("v", false, "show bin info")
-	c := flag.Bool("c", false, "clear data")
+	v := flag.Bool("version", false, "show bin info")
+	c := flag.Bool("clear", false, "clear data")
+	conf := flag.String("config", "config.toml", "set config file")
 	flag.Parse()
 
 	if *v {
@@ -32,6 +33,7 @@ func dealCommand() {
 		clearData()
 		os.Exit(1)
 	}
+	config.ConfigFile = *conf
 }
 
 func setSystemResource() {
@@ -51,6 +53,10 @@ func setSystemResource() {
 }
 
 func runSync() {
+	if err := config.LoadConfig(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	log.SetOption(&log.Option{
 		LogLevel: config.Setting.Log.Level,
 		Mode:     config.Setting.Log.Mode,

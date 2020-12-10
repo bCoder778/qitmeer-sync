@@ -8,22 +8,22 @@ import (
 	"sync"
 )
 
-const (
-	configFile = "config.toml"
+var (
+	ConfigFile = "config.toml"
 )
 
 var Setting *Config
 var once sync.Once
 
-func init() {
-
-	once.Do(func() {
-		if Exist(configFile) {
-			if _, err := toml.DecodeFile(configFile, &Setting); err != nil {
-				fmt.Println(err)
-			}
+func LoadConfig() error {
+	if Exist(ConfigFile) {
+		if _, err := toml.DecodeFile(ConfigFile, &Setting); err != nil {
+			return err
 		}
-	})
+		return nil
+	} else {
+		return fmt.Errorf("%s not is exist", ConfigFile)
+	}
 }
 
 type Config struct {
