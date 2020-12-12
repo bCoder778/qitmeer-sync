@@ -91,6 +91,10 @@ func clearData() {
 		fallthrough
 	case "Y":
 		fmt.Println("Start to clear db data...")
+		if err := config.LoadConfig(); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 		db, err := db.ConnectDB(config.Setting)
 		if err != nil {
 			fmt.Printf("Connect db filed! %s\n", err)

@@ -14,8 +14,9 @@ type blockData struct {
 
 type transactionData struct {
 	Transactions []*types.Transaction
-	Vinouts      []*types.Vinout
-	SpentedVouts []*types.Vinout
+	Vins         []*types.Vin
+	Vouts        []*types.Vout
+	SpentedVouts []*types.Vout
 	Transfers    []*types.Transfer
 }
 
@@ -29,7 +30,7 @@ func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	return s.db.UpdateBlockDatas(block, txData.Transactions, txData.Vinouts, txData.SpentedVouts, txData.Transfers)
+	return s.db.UpdateBlockDatas(block, txData.Transactions, txData.Vins, txData.Vouts, txData.SpentedVouts, txData.Transfers)
 }
 
 func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order uint64, color int) error {
@@ -41,7 +42,7 @@ func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order uint64, color in
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if err := s.db.UpdateTransactionDatas(txData.Transactions, txData.Vinouts, txData.SpentedVouts, txData.Transfers); err != nil {
+	if err := s.db.UpdateTransactionDatas(txData.Transactions, txData.Vins, txData.Vouts, txData.SpentedVouts, txData.Transfers); err != nil {
 		return err
 	}
 	// 删除Mem交易
@@ -119,8 +120,9 @@ func (s *Storage) crateBlock(rpcBlock *rpc.Block) *types.Block {
 
 func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, color int) (*transactionData, error) {
 	txs := []*types.Transaction{}
-	vinouts := []*types.Vinout{}
-	spentedVouts := []*types.Vinout{}
+	vins := []*types.Vin{}
+	vouts := []*types.Vout{}
+	spentedVouts := []*types.Vout{}
 	transfers := []*types.Transfer{}
 	addressInOut := NewAddressInOutMap()
 	for _, rpcTx := range rpcTxs {
@@ -140,7 +142,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 				}
 				// 可能引用同一区块vout
 				if vout.TxId == "" {
-					if vout, err = s.finVout(vin.Txid, vin.Vout, vinouts); err != nil {
+					if vout, err = s.finVout(vin.Txid, vin.Vout, vouts); err != nil {
 						return nil, fmt.Errorf("query txid%s, vout=%d failed!", vin.Txid, vin.Vout)
 					}
 				}
@@ -159,11 +161,10 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 				amount = vout.Amount
 				totalVin += amount
 				addressInOut.AddAddressIn(address, int64(amount))
-				vinout := &types.Vinout{
+				newVin := &types.Vin{
 					TxId:      rpcTx.Txid,
 					SpentedTx: vout.TxId,
 					Order:     order,
-					Type:      stat.TX_Vin,
 					Address:   address,
 					Vout:      vin.Vout,
 					Amount:    amount,
@@ -173,31 +174,22 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 						Hex: vin.ScriptSig.Hex,
 						Asm: vin.ScriptSig.Asm,
 					},
-					ScriptPubKey:           &types.ScriptPubKey{},
-					SpentTx:                "",
-					SpentNumber:            0,
-					UnconfirmedSpentTx:     "",
-					UnconfirmedSpentNumber: 0,
-					Confirmations:          rpcTx.Confirmations,
-					Stat:                   status,
-					Timestamp:              rpcTx.Timestamp.Unix(),
+					Confirmations: rpcTx.Confirmations,
+					Stat:          status,
+					Timestamp:     rpcTx.Timestamp.Unix(),
 				}
-				vinouts = append(vinouts, vinout)
+				vins = append(vins, newVin)
 			}
 		}
 
 		// 添加新的vout
 		for index, vout := range rpcTx.Vout {
-			vinout := &types.Vinout{
-				TxId:      rpcTx.Txid,
-				Order:     order,
-				Type:      stat.TX_Vout,
-				Address:   vout.ScriptPubKey.Addresses[0],
-				Vout:      index,
-				Amount:    vout.Amount,
-				Number:    index,
-				Sequence:  0,
-				ScriptSig: &types.ScriptSig{},
+			newVout := &types.Vout{
+				TxId:    rpcTx.Txid,
+				Order:   order,
+				Address: vout.ScriptPubKey.Addresses[0],
+				Amount:  vout.Amount,
+				Number:  index,
 				ScriptPubKey: &types.ScriptPubKey{
 					Asm:     vout.ScriptPubKey.Asm,
 					Hex:     vout.ScriptPubKey.Hex,
@@ -213,8 +205,8 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 				Timestamp:              rpcTx.Timestamp.Unix(),
 			}
 			totalVout += vout.Amount
-			vinouts = append(vinouts, vinout)
-			addressInOut.AddAddressOut(vinout.Address, int64(vinout.Amount))
+			vouts = append(vouts, newVout)
+			addressInOut.AddAddressOut(newVout.Address, int64(newVout.Amount))
 		}
 		if totalVin > totalVout {
 			fees = totalVin - totalVout
@@ -259,13 +251,13 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 		}
 	}
 
-	return &transactionData{txs, vinouts, spentedVouts, transfers}, nil
+	return &transactionData{txs, vins, vouts, spentedVouts, transfers}, nil
 }
 
-func (s *Storage) finVout(txId string, vout int, vinouts []*types.Vinout) (*types.Vinout, error) {
-	for _, vinout := range vinouts {
-		if vinout.Type == stat.TX_Vout && vinout.TxId == txId && vinout.Number == vout {
-			return vinout, nil
+func (s *Storage) finVout(txId string, number int, vouts []*types.Vout) (*types.Vout, error) {
+	for _, v := range vouts {
+		if v.TxId == txId && v.Number == number {
+			return v, nil
 		}
 	}
 	return nil, fmt.Errorf("vout is not exist")

@@ -2,7 +2,6 @@ package stat
 
 type TxStat int
 type BlockStat int
-type TxType int
 
 const (
 	TX_Confirmed   TxStat = 0 // 已确认
@@ -17,11 +16,6 @@ const (
 	Block_InValid     BlockStat = 2 // 无效
 	Block_Red         BlockStat = 3 // 红色
 	Block_Duplicate   BlockStat = 4 // 红色
-)
-
-const (
-	TX_Vin  TxType = 0
-	TX_Vout TxType = 1
 )
 
 const (

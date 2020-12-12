@@ -11,9 +11,9 @@ func (d *DB) GetTransaction(txId string, blockHash string) (*types.Transaction, 
 	return tx, err
 }
 
-func (d *DB) GetVout(txId string, vout int) (*types.Vinout, error) {
-	vinout := &types.Vinout{}
-	_, err := d.engine.Where("tx_id = ? and type = ? and number = ?", txId, stat.TX_Vout, vout).Get(vinout)
+func (d *DB) GetVout(txId string, vout int) (*types.Vout, error) {
+	vinout := &types.Vout{}
+	_, err := d.engine.Where("tx_id = ? and number = ?", txId, vout).Get(vinout)
 	return vinout, err
 }
 
@@ -30,7 +30,7 @@ func (d *DB) GetLastUnconfirmedOrder() (uint64, error) {
 }
 
 func (d *DB) GetConfirmedUtxo() float64 {
-	amount, _ := d.engine.Where("spent_tx = ? and type = ? and stat = ? and confirmations > ?", "", stat.TX_Vout, stat.TX_Confirmed, stat.Block_Confirmed_Value).Sum(new(types.Vinout), "amount")
+	amount, _ := d.engine.Where("spent_tx = ? and stat = ? and confirmations > ?", "", stat.TX_Confirmed, stat.Block_Confirmed_Value).Sum(new(types.Vout), "amount")
 	return amount
 }
 
@@ -43,7 +43,7 @@ func (d *DB) GetAllUtxoAndBlockCount() (float64, int64, error) {
 	sess := d.engine.NewSession()
 	defer sess.Close()
 
-	utxo, err := sess.Where("spent_tx = ? and unconfirmed_spent_tx = ? and type = ? and stat != ?", "", "", stat.TX_Vout, stat.TX_Failed).Sum(new(types.Vinout), "amount")
+	utxo, err := sess.Where("spent_tx = ? and unconfirmed_spent_tx = ? and stat != ?", "", "", stat.TX_Failed).Sum(new(types.Vout), "amount")
 	if err != nil {
 		return 0, 0, err
 	}
@@ -56,7 +56,7 @@ func (d *DB) GetConfirmedUtxoAndBlockCount() (float64, int64, error) {
 	defer sess.Close()
 
 	txIds := []string{}
-	sess.Table(new(types.Vinout)).Select("DISTINCT(tx_id)").Where("confirmations <= ?", stat.Block_Confirmed_Value).Find(&txIds)
+	sess.Table(new(types.Vout)).Select("DISTINCT(tx_id)").Where("confirmations <= ?", stat.Block_Confirmed_Value).Find(&txIds)
 
 	params := []interface{}{}
 	for _, txId := range txIds {
@@ -64,8 +64,8 @@ func (d *DB) GetConfirmedUtxoAndBlockCount() (float64, int64, error) {
 	}
 
 	utxo, err := sess.In("spent_tx", params...).Or("spent_tx = ?", "").
-		And("type = ? and confirmations > ? and stat = ?", stat.TX_Vout, stat.Block_Confirmed_Value, stat.TX_Confirmed).
-		Sum(new(types.Vinout), "amount")
+		And("confirmations > ? and stat = ?", stat.Block_Confirmed_Value, stat.TX_Confirmed).
+		Sum(new(types.Vout), "amount")
 
 	count, err := d.engine.Table(new(types.Block)).Where("stat = ?", stat.Block_Confirmed).Count()
 	return utxo, count, err

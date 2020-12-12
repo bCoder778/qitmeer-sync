@@ -29,7 +29,8 @@ func ConnectMysql(conf *config.DB) (*DB, error) {
 	if err = engine.Sync2(
 		new(types.Block),
 		new(types.Transaction),
-		new(types.Vinout),
+		new(types.Vin),
+		new(types.Vout),
 		new(types.Transfer),
 	); err != nil {
 		return nil, err
@@ -49,7 +50,8 @@ func ConnectSqlServer(conf *config.DB) (*DB, error) {
 	if err = engine.Sync2(
 		new(types.Block),
 		new(types.Transaction),
-		new(types.Vinout),
+		new(types.Vin),
+		new(types.Vout),
 		new(types.Transfer),
 	); err != nil {
 		return nil, err
@@ -64,12 +66,13 @@ func (d *DB) Close() error {
 func (d *DB) Clear() error {
 	d.engine.DropTables("block")
 	d.engine.DropTables("transaction")
-	d.engine.DropTables("vinout")
+	d.engine.DropTables("vin")
+	d.engine.DropTables("vout")
 	d.engine.DropTables("transfer")
 	return nil
 }
 
-func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vinouts []*types.Vinout, spentedVouts []*types.Vinout, transfers []*types.Transfer) error {
+func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vins []*types.Vin, vouts []*types.Vout, spentedVouts []*types.Vout, transfers []*types.Transfer) error {
 	sess := d.engine.NewSession()
 	defer sess.Close()
 
@@ -105,7 +108,14 @@ func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vino
 		return err
 	}
 
-	if err := updateVinouts(sess, vinouts); err != nil {
+	if err := updateVins(sess, vins); err != nil {
+		if err := sess.Rollback(); err != nil {
+			return fmt.Errorf("roll back failed! %s", err.Error())
+		}
+		return err
+	}
+
+	if err := updateVouts(sess, vouts); err != nil {
 		if err := sess.Rollback(); err != nil {
 			return fmt.Errorf("roll back failed! %s", err.Error())
 		}
@@ -118,7 +128,7 @@ func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vino
 	return nil
 }
 
-func (d *DB) UpdateTransactionDatas(txs []*types.Transaction, vinouts []*types.Vinout, spentedVouts []*types.Vinout, transfers []*types.Transfer) error {
+func (d *DB) UpdateTransactionDatas(txs []*types.Transaction, vins []*types.Vin, vouts []*types.Vout, spentedVouts []*types.Vout, transfers []*types.Transfer) error {
 	sess := d.engine.NewSession()
 	defer sess.Close()
 
@@ -140,14 +150,21 @@ func (d *DB) UpdateTransactionDatas(txs []*types.Transaction, vinouts []*types.V
 		return err
 	}
 
-	if err := updateVinouts(sess, vinouts); err != nil {
+	if err := updateSpentedVinouts(sess, spentedVouts); err != nil {
 		if err := sess.Rollback(); err != nil {
 			return fmt.Errorf("roll back failed! %s", err.Error())
 		}
 		return err
 	}
 
-	if err := updateSpentedVinouts(sess, spentedVouts); err != nil {
+	if err := updateVins(sess, vins); err != nil {
+		if err := sess.Rollback(); err != nil {
+			return fmt.Errorf("roll back failed! %s", err.Error())
+		}
+		return err
+	}
+
+	if err := updateVouts(sess, vouts); err != nil {
 		if err := sess.Rollback(); err != nil {
 			return fmt.Errorf("roll back failed! %s", err.Error())
 		}
@@ -160,33 +177,27 @@ func (d *DB) UpdateTransactionDatas(txs []*types.Transaction, vinouts []*types.V
 	return nil
 }
 
-func updateVinouts(sess *xorm.Session, vinouts []*types.Vinout) error {
-	// 更新vinouts
+func updateVins(sess *xorm.Session, vins []*types.Vin) error {
+	// 更新vin
 
-	for _, vinout := range vinouts {
-		queryVinout := &types.Vinout{}
+	for _, vin := range vins {
+		queryVin := &types.Vin{}
 		cols := []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`, `spented_tx`, `vout`, "confirmations", `sequence`, `script_sig`, `stat`}
-		if ok, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).Get(queryVinout); err != nil {
+		if ok, err := sess.Where("tx_id = ?  and number = ?", vin.TxId, vin.Number).Get(queryVin); err != nil {
 			return fmt.Errorf("faild to seesion exist vinout, %s", err.Error())
 		} else if ok {
-			if queryVinout.Stat != stat.TX_Confirmed {
-				if vinout.SpentTx != "" {
-					cols = []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`,
-						`spent_tx`, `spent_number`, `spented_tx`, `vout`, "confirmations",
-						`sequence`, `script_sig`, `stat`}
-				} else if vinout.SpentTx == "" && vinout.UnconfirmedSpentTx != "" {
-					cols = []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`,
-						`unconfirmed_spent_tx`, `unconfirmed_spent_number`, `spented_tx`, `vout`,
-						"confirmations", `sequence`, `script_sig`, `stat`}
-				}
+			if queryVin.Stat != stat.TX_Confirmed {
+				cols = []string{`order`, `timestamp`, `address`, `amount`,
+					`spented_tx`, `vout`, "confirmations", `sequence`,
+					`script_sig`, `stat`}
 
-				if _, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).
-					Cols(cols...).Update(vinout); err != nil {
+				if _, err := sess.Where("tx_id = ?  and number = ?", vin.TxId, vin.Number).
+					Cols(cols...).Update(vin); err != nil {
 					return err
 				}
 			}
 		} else {
-			if _, err := sess.Insert(vinout); err != nil {
+			if _, err := sess.Insert(vin); err != nil {
 				return err
 			}
 		}
@@ -194,11 +205,45 @@ func updateVinouts(sess *xorm.Session, vinouts []*types.Vinout) error {
 	return nil
 }
 
-func updateSpentedVinouts(sess *xorm.Session, vinouts []*types.Vinout) error {
+func updateVouts(sess *xorm.Session, vouts []*types.Vout) error {
+	// 更新vout
+
+	for _, vout := range vouts {
+		queryVout := &types.Vout{}
+		cols := []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`, `spented_tx`, `vout`, "confirmations", `sequence`, `script_sig`, `stat`}
+		if ok, err := sess.Where("tx_id = ?  and number = ?", vout.TxId, vout.Number).Get(queryVout); err != nil {
+			return fmt.Errorf("faild to seesion exist vinout, %s", err.Error())
+		} else if ok {
+			if queryVout.Stat != stat.TX_Confirmed {
+				if vout.SpentTx != "" {
+					cols = []string{`order`, `timestamp`, `address`, `amount`,
+						`script_pub_key`, `spent_tx`, `spent_number`, "confirmations",
+						`stat`}
+				} else if vout.SpentTx == "" && vout.UnconfirmedSpentTx != "" {
+					cols = []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`,
+						`unconfirmed_spent_tx`, `unconfirmed_spent_number`, `spented_tx`, `vout`,
+						"confirmations", `sequence`, `script_sig`, `stat`}
+				}
+
+				if _, err := sess.Where("tx_id = ? and number = ?", vout.TxId, vout.Number).
+					Cols(cols...).Update(vout); err != nil {
+					return err
+				}
+			}
+		} else {
+			if _, err := sess.Insert(vout); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func updateSpentedVinouts(sess *xorm.Session, vouts []*types.Vout) error {
 	// 更新spentedVouts
-	for _, vinout := range vinouts {
-		if _, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).
-			Cols("spent_tx", "spent_number", "unconfirmed_spent_tx", "unconfirmed_spent_number").Update(vinout); err != nil {
+	for _, vout := range vouts {
+		if _, err := sess.Where("tx_id = ? and number = ?", vout.TxId, vout.Number).
+			Cols("spent_tx", "spent_number", "unconfirmed_spent_tx", "unconfirmed_spent_number").Update(vout); err != nil {
 			return err
 		}
 	}
@@ -299,8 +344,4 @@ func (d *DB) DeleteTransaction(tx *types.Transaction) error {
 	var deleted types.Transaction
 	_, err := d.engine.Id(tx.Id).Delete(&deleted)
 	return err
-}
-
-func (d *DB) UpdateVinout(inout *types.Vinout) error {
-	return nil
 }

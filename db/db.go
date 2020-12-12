@@ -17,12 +17,11 @@ type IDB interface {
 }
 
 type IUpdate interface {
-	UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vinouts []*types.Vinout, spentedVouts []*types.Vinout, transfers []*types.Transfer) error
-	UpdateTransactionDatas(txs []*types.Transaction, vinouts []*types.Vinout, spentedVouts []*types.Vinout, transfers []*types.Transfer) error
+	UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vins []*types.Vin, vouts []*types.Vout, spentedVouts []*types.Vout, transfers []*types.Transfer) error
+	UpdateTransactionDatas(txs []*types.Transaction, vins []*types.Vin, vouts []*types.Vout, spentedVouts []*types.Vout, transfers []*types.Transfer) error
 
 	UpdateBlock(block *types.Block) error
 	UpdateTransaction(tx *types.Transaction) error
-	UpdateVinout(inout *types.Vinout) error
 
 	DeleteTransaction(tx *types.Transaction) error
 }
@@ -31,7 +30,7 @@ type IGet interface {
 	GetLastOrder() (uint64, error)
 	GetLastUnconfirmedOrder() (uint64, error)
 	GetTransaction(txId string, blockHash string) (*types.Transaction, error)
-	GetVout(txId string, vout int) (*types.Vinout, error)
+	GetVout(txId string, vout int) (*types.Vout, error)
 	GetConfirmedUtxo() float64
 	GetConfirmedBlockCount() int64
 	GetAllUtxoAndBlockCount() (float64, int64, error)

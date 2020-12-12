@@ -73,10 +73,25 @@ type Transfer struct {
 	Stat          stat.TxStat `xorm:"int" json:"stat"`
 }
 
-type Vinout struct {
+type Vin struct {
+	Id            uint64      `xorm:"bigint autoincr pk" json:"id"`
+	TxId          string      `xorm:"varchar(64) index(queryvin)" json:"txid"`
+	Number        int         `xorm:"int index" json:"number"`
+	Order         uint64      `xorm:"bigint" json:"order"`
+	Timestamp     int64       `xorm:"bigint" json:"timestamp"`
+	Address       string      `xorm:"varchar(35) index" json:"address"`
+	Amount        uint64      `xorm:"bigint" json:"amount"`
+	SpentedTx     string      `xorm:"varchar(64)" json:"spentedtx"`
+	Vout          int         `xorm:"int index(queryvin)" json:"vout"`
+	Confirmations uint64      `xorm:"bigint" json:"confirmations"`
+	Sequence      uint64      `xorm:"bigint" json:"sequence"`
+	ScriptSig     *ScriptSig  `xorm:"json" json:"scriptsig"`
+	Stat          stat.TxStat `xorm:"stat" json:"stat"`
+}
+
+type Vout struct {
 	Id                     uint64        `xorm:"bigint autoincr pk" json:"id"`
 	TxId                   string        `xorm:"varchar(64) index" json:"txid"`
-	Type                   stat.TxType   `xorm:"int index" json:"type"`
 	Number                 int           `xorm:"int index" json:"number"`
 	Order                  uint64        `xorm:"bigint" json:"order"`
 	Timestamp              int64         `xorm:"bigint" json:"timestamp"`
@@ -87,11 +102,7 @@ type Vinout struct {
 	SpentNumber            int           `xorm:"int" json:"spentnumber"`
 	UnconfirmedSpentTx     string        `xorm:"varchar(64)" json:"unconfirmedspenttx"`
 	UnconfirmedSpentNumber int           `xorm:"int" json:"unconfirmedspentnumber"`
-	SpentedTx              string        `xorm:"varchar(64) index(queryvin)" json:"spentedtx"`
-	Vout                   int           `xorm:"int index(queryvin)" json:"vout"`
 	Confirmations          uint64        `xorm:"bigint" json:"confirmations"`
-	Sequence               uint64        `xorm:"bigint" json:"sequence"`
-	ScriptSig              *ScriptSig    `xorm:"json" json:"scriptsig"`
 	Stat                   stat.TxStat   `xorm:"stat" json:"stat"`
 }
 
