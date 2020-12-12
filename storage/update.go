@@ -16,6 +16,7 @@ type transactionData struct {
 	Transactions []*types.Transaction
 	Vinouts      []*types.Vinout
 	SpentedVouts []*types.Vinout
+	Transfers    []*types.Transfer
 }
 
 func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
@@ -28,7 +29,7 @@ func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	return s.db.UpdateBlockDatas(block, txData.Transactions, txData.Vinouts, txData.SpentedVouts)
+	return s.db.UpdateBlockDatas(block, txData.Transactions, txData.Vinouts, txData.SpentedVouts, txData.Transfers)
 }
 
 func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order uint64, color int) error {
@@ -40,7 +41,7 @@ func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order uint64, color in
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if err := s.db.UpdateTransactionDatas(txData.Transactions, txData.Vinouts, txData.SpentedVouts); err != nil {
+	if err := s.db.UpdateTransactionDatas(txData.Transactions, txData.Vinouts, txData.SpentedVouts, txData.Transfers); err != nil {
 		return err
 	}
 	// 删除Mem交易
@@ -120,7 +121,8 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 	txs := []*types.Transaction{}
 	vinouts := []*types.Vinout{}
 	spentedVouts := []*types.Vinout{}
-
+	transfers := []*types.Transfer{}
+	addressInOut := NewAddressInOutMap()
 	for _, rpcTx := range rpcTxs {
 		status := s.verify.TransactionStat(&rpcTx, color)
 		var totalVin, totalVout, fees uint64
@@ -156,7 +158,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 				address = vout.Address
 				amount = vout.Amount
 				totalVin += amount
-
+				addressInOut.AddAddressIn(address, int64(amount))
 				vinout := &types.Vinout{
 					TxId:      rpcTx.Txid,
 					SpentedTx: vout.TxId,
@@ -212,6 +214,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 			}
 			totalVout += vout.Amount
 			vinouts = append(vinouts, vinout)
+			addressInOut.AddAddressOut(vinout.Address, int64(vinout.Amount))
 		}
 		if totalVin > totalVout {
 			fees = totalVin - totalVout
@@ -238,9 +241,25 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 			Stat:          status,
 		}
 		txs = append(txs, tx)
+
+		// 创建地址交易信息
+		addrChanges := addressInOut.AddressChange()
+		for _, change := range addrChanges {
+			transfers = append(transfers, &types.Transfer{
+				TxId:          tx.TxId,
+				Address:       change.Address,
+				Confirmations: tx.Confirmations,
+				Txsvaild:      tx.Txsvaild,
+				IsCoinbase:    tx.IsCoinbase,
+				Change:        change.Change,
+				Timestamp:     tx.Timestamp,
+				Fees:          tx.Fees,
+				Stat:          tx.Stat,
+			})
+		}
 	}
 
-	return &transactionData{txs, vinouts, spentedVouts}, nil
+	return &transactionData{txs, vinouts, spentedVouts, transfers}, nil
 }
 
 func (s *Storage) finVout(txId string, vout int, vinouts []*types.Vinout) (*types.Vinout, error) {
@@ -263,4 +282,62 @@ func (s *Storage) BlockMiner(rpcBlock *rpc.Block) *types.Miner {
 		}
 	}
 	return &types.Miner{}
+}
+
+type AddressInOut struct {
+	Address  string
+	TotalIn  int64
+	TotalOut int64
+}
+
+type AddressChange struct {
+	Address string
+	Change  int64
+}
+
+type AddressInOutMap struct {
+	addrMap map[string]*AddressInOut
+}
+
+func NewAddressInOutMap() *AddressInOutMap {
+	return &AddressInOutMap{
+		addrMap: make(map[string]*AddressInOut),
+	}
+}
+
+func (a *AddressInOutMap) AddAddressIn(address string, inAmount int64) {
+	inOut, ok := a.addrMap[address]
+	if ok {
+		inOut.TotalIn += inAmount
+	} else {
+		a.addrMap[address] = &AddressInOut{
+			Address:  address,
+			TotalIn:  inAmount,
+			TotalOut: 0,
+		}
+	}
+}
+
+func (a *AddressInOutMap) AddAddressOut(address string, outAmount int64) {
+	inOut, ok := a.addrMap[address]
+	if ok {
+		inOut.TotalOut += outAmount
+	} else {
+		a.addrMap[address] = &AddressInOut{
+			Address:  address,
+			TotalIn:  0,
+			TotalOut: outAmount,
+		}
+	}
+}
+
+func (a *AddressInOutMap) AddressChange() []*AddressChange {
+	addrChanges := []*AddressChange{}
+	for address, inOut := range a.addrMap {
+		addrChanges = append(addrChanges, &AddressChange{
+			Address: address,
+			Change:  inOut.TotalOut - inOut.TotalIn,
+		})
+	}
+	return addrChanges
 }

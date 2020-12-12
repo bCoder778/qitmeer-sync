@@ -60,6 +60,19 @@ type Transaction struct {
 	Stat          stat.TxStat `xorm:"int" json:"stat"`
 }
 
+type Transfer struct {
+	Id            uint64      `xorm:"bigint autoincr pk" json:"id"`
+	TxId          string      `xorm:"varchar(64) index" json:"txid"`
+	Address       string      `xorm:"varchar(35) index" json:"address"`
+	Confirmations uint64      `xorm:"bigint" json:"confirmations"`
+	Txsvaild      bool        `xorm:"bool" json:"txsvaild"`
+	IsCoinbase    bool        `xorm:"bool" json:"iscoinbase"`
+	Change        int64       `xorm:"bigint" json:"change"`
+	Fees          uint64      `xorm:"bigint" json:"fees"`
+	Timestamp     int64       `xorm:"bigint" json:"timestamp"`
+	Stat          stat.TxStat `xorm:"int" json:"stat"`
+}
+
 type Vinout struct {
 	Id                     uint64        `xorm:"bigint autoincr pk" json:"id"`
 	TxId                   string        `xorm:"varchar(64) index" json:"txid"`

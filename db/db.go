@@ -17,8 +17,8 @@ type IDB interface {
 }
 
 type IUpdate interface {
-	UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vinouts []*types.Vinout, spentedVouts []*types.Vinout) error
-	UpdateTransactionDatas(txs []*types.Transaction, vinouts []*types.Vinout, spentedVouts []*types.Vinout) error
+	UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vinouts []*types.Vinout, spentedVouts []*types.Vinout, transfers []*types.Transfer) error
+	UpdateTransactionDatas(txs []*types.Transaction, vinouts []*types.Vinout, spentedVouts []*types.Vinout, transfers []*types.Transfer) error
 
 	UpdateBlock(block *types.Block) error
 	UpdateTransaction(tx *types.Transaction) error

@@ -9,11 +9,11 @@ dbtype="mysql"
 user="root"
 password="kahfxwxsx113"
 address="127.0.0.1:3306"
-dbname="qitmeersync"
+dbname="qitmeersync2"
 
 [log]
 # console=12 | file=11
-mode=11
+mode=12
 # debug=0 | info=1 | warn=2 | fail=3 | error=4 | email=5
 level=0
 path="logs"
@@ -29,7 +29,7 @@ to=[""]
 [verify]
 utxo=true
 fees=true
-interval=10
+interval=100
 
 [resources]
 cpu-number=16

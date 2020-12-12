@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/bCoder778/qitmeer-sync/config"
 	"github.com/bCoder778/qitmeer-sync/storage/types"
+	"github.com/bCoder778/qitmeer-sync/verify/stat"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"
 	//"github.com/xormplus/xorm"
@@ -29,6 +30,7 @@ func ConnectMysql(conf *config.DB) (*DB, error) {
 		new(types.Block),
 		new(types.Transaction),
 		new(types.Vinout),
+		new(types.Transfer),
 	); err != nil {
 		return nil, err
 	}
@@ -39,8 +41,17 @@ func ConnectMysql(conf *config.DB) (*DB, error) {
 func ConnectSqlServer(conf *config.DB) (*DB, error) {
 	path := fmt.Sprintf("server=%s;user id=%s;password=%s;database=%s", conf.Address, conf.User, conf.Password, conf.DBName)
 	engine, err := xorm.NewEngine("mssql", path)
-	engine.ShowSQL(false)
+
 	if err != nil {
+		return nil, err
+	}
+	engine.ShowSQL(false)
+	if err = engine.Sync2(
+		new(types.Block),
+		new(types.Transaction),
+		new(types.Vinout),
+		new(types.Transfer),
+	); err != nil {
 		return nil, err
 	}
 	return &DB{engine}, nil
@@ -54,10 +65,11 @@ func (d *DB) Clear() error {
 	d.engine.DropTables("block")
 	d.engine.DropTables("transaction")
 	d.engine.DropTables("vinout")
+	d.engine.DropTables("transfer")
 	return nil
 }
 
-func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vinouts []*types.Vinout, spentedVouts []*types.Vinout) error {
+func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vinouts []*types.Vinout, spentedVouts []*types.Vinout, transfers []*types.Transfer) error {
 	sess := d.engine.NewSession()
 	defer sess.Close()
 
@@ -73,6 +85,13 @@ func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vino
 	}
 
 	if err := updateTransactions(sess, txs); err != nil {
+		if err := sess.Rollback(); err != nil {
+			return fmt.Errorf("roll back failed! %s", err.Error())
+		}
+		return err
+	}
+
+	if err := updateTransfers(sess, transfers); err != nil {
 		if err := sess.Rollback(); err != nil {
 			return fmt.Errorf("roll back failed! %s", err.Error())
 		}
@@ -99,7 +118,7 @@ func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vino
 	return nil
 }
 
-func (d *DB) UpdateTransactionDatas(txs []*types.Transaction, vinouts []*types.Vinout, spentedVouts []*types.Vinout) error {
+func (d *DB) UpdateTransactionDatas(txs []*types.Transaction, vinouts []*types.Vinout, spentedVouts []*types.Vinout, transfers []*types.Transfer) error {
 	sess := d.engine.NewSession()
 	defer sess.Close()
 
@@ -108,6 +127,13 @@ func (d *DB) UpdateTransactionDatas(txs []*types.Transaction, vinouts []*types.V
 	}
 
 	if err := updateTransactions(sess, txs); err != nil {
+		if err := sess.Rollback(); err != nil {
+			return fmt.Errorf("roll back failed! %s", err.Error())
+		}
+		return err
+	}
+
+	if err := updateTransfers(sess, transfers); err != nil {
 		if err := sess.Rollback(); err != nil {
 			return fmt.Errorf("roll back failed! %s", err.Error())
 		}
@@ -143,19 +169,21 @@ func updateVinouts(sess *xorm.Session, vinouts []*types.Vinout) error {
 		if ok, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).Get(queryVinout); err != nil {
 			return fmt.Errorf("faild to seesion exist vinout, %s", err.Error())
 		} else if ok {
-			if vinout.SpentTx != "" {
-				cols = []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`,
-					`spent_tx`, `spent_number`, `spented_tx`, `vout`, "confirmations",
-					`sequence`, `script_sig`, `stat`}
-			} else if vinout.SpentTx == "" && vinout.UnconfirmedSpentTx != "" {
-				cols = []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`,
-					`unconfirmed_spent_tx`, `unconfirmed_spent_number`, `spented_tx`, `vout`,
-					"confirmations", `sequence`, `script_sig`, `stat`}
-			}
+			if queryVinout.Stat != stat.TX_Confirmed {
+				if vinout.SpentTx != "" {
+					cols = []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`,
+						`spent_tx`, `spent_number`, `spented_tx`, `vout`, "confirmations",
+						`sequence`, `script_sig`, `stat`}
+				} else if vinout.SpentTx == "" && vinout.UnconfirmedSpentTx != "" {
+					cols = []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`,
+						`unconfirmed_spent_tx`, `unconfirmed_spent_number`, `spented_tx`, `vout`,
+						"confirmations", `sequence`, `script_sig`, `stat`}
+				}
 
-			if _, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).
-				Cols(cols...).Update(vinout); err != nil {
-				return err
+				if _, err := sess.Where("tx_id = ? and type = ? and number = ?", vinout.TxId, vinout.Type, vinout.Number).
+					Cols(cols...).Update(vinout); err != nil {
+					return err
+				}
 			}
 		} else {
 			if _, err := sess.Insert(vinout); err != nil {
@@ -181,24 +209,47 @@ func updateTransactions(sess *xorm.Session, txs []*types.Transaction) error {
 	// 更新transaction
 	queryTx := &types.Transaction{}
 	for _, tx := range txs {
-		queryTx.TxId = tx.TxId
-		queryTx.BlockHash = tx.BlockHash
-		if ok, err := sess.Exist(queryTx); err != nil {
+		if ok, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).Get(queryTx); err != nil {
 			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
 		} else if ok {
-			if _, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).
-				Cols(`block_order`, `tx_hash`, `size`, `version`, `locktime`,
-					`timestamp`, `expire`, `confirmations`, `txsvaild`, `is_coinbase`,
-					`vins`, `vouts`, `total_vin`, `total_vout`, `fees`, `duplicate`,
-					`stat`).Update(tx); err != nil {
-				return err
+			if tx.Stat != stat.TX_Confirmed {
+				if _, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).
+					Cols(`block_order`, `tx_hash`, `size`, `version`, `locktime`,
+						`timestamp`, `expire`, `confirmations`, `txsvaild`, `is_coinbase`,
+						`vins`, `vouts`, `total_vin`, `total_vout`, `fees`, `duplicate`,
+						`stat`).Update(tx); err != nil {
+					return err
+				}
 			}
+
 		} else {
 			if _, err := sess.Insert(tx); err != nil {
 				return err
 			}
 		}
 
+	}
+	return nil
+}
+
+func updateTransfers(sess *xorm.Session, transfers []*types.Transfer) error {
+	// 更新transaction
+	queryTransfer := &types.Transfer{}
+	for _, tras := range transfers {
+		if ok, err := sess.Where("tx_id = ? and address = ?", tras.TxId, tras.Address).Get(queryTransfer); err != nil {
+			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
+		} else if ok {
+			if queryTransfer.Stat != stat.TX_Confirmed {
+				if _, err := sess.Where("tx_id = ? and address = ?", tras.TxId, tras.Address).
+					Cols(`confirmations`, `txsvaild`, `stat`).Update(tras); err != nil {
+					return err
+				}
+			}
+		} else {
+			if _, err := sess.Insert(tras); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
