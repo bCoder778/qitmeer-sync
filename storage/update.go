@@ -80,7 +80,7 @@ func (s *Storage) UpdateTransactionStat(txId string, stat stat.TxStat) error {
 
 	for _, tx := range txs {
 		tx.Stat = stat
-		s.db.UpdateTransaction(&tx)
+		s.db.UpdateTransactionStat(&tx)
 	}
 	return nil
 }

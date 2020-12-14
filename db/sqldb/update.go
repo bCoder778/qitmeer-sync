@@ -325,17 +325,36 @@ func (d *DB) UpdateBlock(block *types.Block) error {
 	return nil
 }
 
-func (d *DB) UpdateTransaction(tx *types.Transaction) error {
+func (d *DB) UpdateTransactionStat(tx *types.Transaction) error {
 	sess := d.engine.NewSession()
 	defer sess.Close()
 
-	if _, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).
-		Cols(`block_order`, `tx_hash`, `size`, `version`, `locktime`,
-			`timestamp`, `expire`, `confirmations`, `txsvaild`, `is_coinbase`,
-			`vins`, `vouts`, `total_vin`, `total_vout`, `fees`, `duplicate`,
-			`stat`).
+	if err := sess.Begin(); err != nil {
+		return fmt.Errorf("failed to seesion begin, %s", err.Error())
+	}
+	if _, err := sess.Where("tx_id = ?= ?", tx.TxId).
+		Cols(`stat`).
 		Update(tx); err != nil {
 		return err
+	}
+
+	if _, err := sess.Where("tx_id = ??", tx.TxId).
+		Cols(`stat`).
+		Update(&types.Vin{TxId: tx.TxId, Stat: tx.Stat}); err != nil {
+		return err
+	}
+	if _, err := sess.Where("tx_id = ??", tx.TxId).
+		Cols(`stat`).
+		Update(&types.Vout{TxId: tx.TxId, Stat: tx.Stat}); err != nil {
+		return err
+	}
+	if _, err := sess.Where("tx_id = ??", tx.TxId).
+		Cols(`stat`).
+		Update(&types.Transfer{TxId: tx.TxId, Stat: tx.Stat}); err != nil {
+		return err
+	}
+	if err := sess.Commit(); err != nil {
+		return fmt.Errorf("failed to seesion coimmit, %s", err.Error())
 	}
 	return nil
 }

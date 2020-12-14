@@ -21,7 +21,7 @@ type IUpdate interface {
 	UpdateTransactionDatas(txs []*types.Transaction, vins []*types.Vin, vouts []*types.Vout, spentedVouts []*types.Vout, transfers []*types.Transfer) error
 
 	UpdateBlock(block *types.Block) error
-	UpdateTransaction(tx *types.Transaction) error
+	UpdateTransactionStat(tx *types.Transaction) error
 
 	DeleteTransaction(tx *types.Transaction) error
 }

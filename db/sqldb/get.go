@@ -55,8 +55,12 @@ func (d *DB) GetConfirmedUtxoAndBlockCount() (float64, int64, error) {
 	sess := d.engine.NewSession()
 	defer sess.Close()
 
+	var order int64
+
+	_, err := sess.Table(new(types.Vout)).Select("`order`").Where("confirmations > ?", stat.Block_Confirmed_Value).Desc(`order`).Limit(1).Get(&order)
+
 	txIds := []string{}
-	sess.Table(new(types.Vout)).Select("DISTINCT(tx_id)").Where("confirmations <= ?", stat.Block_Confirmed_Value).Find(&txIds)
+	sess.Table(new(types.Vout)).Select("tx_id").Where("`order` > ?", order).Find(&txIds)
 
 	params := []interface{}{}
 	for _, txId := range txIds {
@@ -64,7 +68,7 @@ func (d *DB) GetConfirmedUtxoAndBlockCount() (float64, int64, error) {
 	}
 
 	utxo, err := sess.In("spent_tx", params...).Or("spent_tx = ?", "").
-		And("confirmations > ? and stat = ?", stat.Block_Confirmed_Value, stat.TX_Confirmed).
+		And("`order` <= ? and stat = ?", order, stat.TX_Confirmed).
 		Sum(new(types.Vout), "amount")
 
 	count, err := d.engine.Table(new(types.Block)).Where("stat = ?", stat.Block_Confirmed).Count()
