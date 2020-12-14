@@ -124,8 +124,8 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 	vouts := []*types.Vout{}
 	spentedVouts := []*types.Vout{}
 	transfers := []*types.Transfer{}
-	addressInOut := NewAddressInOutMap()
 	for _, rpcTx := range rpcTxs {
+		addressInOut := NewAddressInOutMap()
 		status := s.verify.TransactionStat(&rpcTx, color)
 		var totalVin, totalVout, fees uint64
 		for index, vin := range rpcTx.Vin {
