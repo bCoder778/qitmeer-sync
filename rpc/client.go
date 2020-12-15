@@ -163,6 +163,19 @@ func (c *Client) GetFees(hash string) (uint64, error) {
 	return strconv.ParseUint(string(resp.Result), 10, 64)
 }
 
+func (c *Client) GetPeerInfo() ([]PeerInfo, error) {
+	var params []interface{}
+	resp := NewReqeust(params).SetMethod("getPeerInfo").call(c.rpcAuth)
+	if resp.Error != nil {
+		return nil, errors.New(resp.Error.Message)
+	}
+	var rs []PeerInfo
+	if err := json.Unmarshal(resp.Result, &rs); err != nil {
+		return nil, err
+	}
+	return rs, nil
+}
+
 func (req *ClientRequest) call(auth *config.Rpc) *ClientResponse {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},

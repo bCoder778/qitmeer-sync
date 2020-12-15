@@ -99,3 +99,24 @@ type GraphState struct {
 	MainHeight uint64   `json:"mainheight"`
 	Layer      uint64   `json:"layer"`
 }
+
+type PeerInfo struct {
+	Id         uint64     `json:"id"`
+	Addr       string     `json:"addr"`
+	AddrLocal  string     `json:"addrlocal"`
+	Services   string     `json:"services"`
+	Relaytxes  bool       `json:"relaytxes"`
+	LastSend   uint64     `json:"lastsend"`
+	LastRecv   uint64     `json:"lastrecv"`
+	BytesSent  uint64     `json:"bytessent"`
+	BytesRecv  uint64     `json:"bytesrecv"`
+	Conntime   uint64     `json:"conntime"`
+	TimeOffSet int64      `json:"timeoffset"`
+	PingTime   uint64     `json:"pingtime"`
+	Version    uint64     `json:"version"`
+	Subver     string     `json:"subver"`
+	Inbound    bool       `json:"inbound"`
+	BansCore   uint64     `json:"banscore"`
+	SyncNode   bool       `json:"syncnode"`
+	GraphState GraphState `json:"graphstate"`
+}
