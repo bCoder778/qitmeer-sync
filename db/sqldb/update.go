@@ -23,8 +23,7 @@ func ConnectMysql(conf *config.DB) (*DB, error) {
 	engine, err := xorm.NewEngine("mysql", path)
 	if err != nil {
 		return nil, err
-	}
-	//	engine.ShowSQL(true)
+	}//engine.ShowSQL(true)
 
 	if err = engine.Sync2(
 		new(types.Block),
@@ -252,8 +251,8 @@ func updateSpentedVinouts(sess *xorm.Session, vouts []*types.Vout) error {
 
 func updateTransactions(sess *xorm.Session, txs []*types.Transaction) error {
 	// 更新transaction
-	queryTx := &types.Transaction{}
 	for _, tx := range txs {
+		queryTx := &types.Transaction{}
 		if ok, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).Get(queryTx); err != nil {
 			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
 		} else if ok {
@@ -279,8 +278,8 @@ func updateTransactions(sess *xorm.Session, txs []*types.Transaction) error {
 
 func updateTransfers(sess *xorm.Session, transfers []*types.Transfer) error {
 	// 更新transaction
-	queryTransfer := &types.Transfer{}
 	for _, tras := range transfers {
+		queryTransfer := &types.Transfer{}
 		if ok, err := sess.Where("tx_id = ? and address = ?", tras.TxId, tras.Address).Get(queryTransfer); err != nil {
 			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
 		} else if ok {
