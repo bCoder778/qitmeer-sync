@@ -331,23 +331,23 @@ func (d *DB) UpdateTransactionStat(tx *types.Transaction) error {
 	if err := sess.Begin(); err != nil {
 		return fmt.Errorf("failed to seesion begin, %s", err.Error())
 	}
-	if _, err := sess.Where("tx_id = ?= ?", tx.TxId).
+	if _, err := sess.Where("tx_id = ?", tx.TxId).
 		Cols(`stat`).
 		Update(tx); err != nil {
 		return err
 	}
 
-	if _, err := sess.Where("tx_id = ??", tx.TxId).
+	if _, err := sess.Where("tx_id = ?", tx.TxId).
 		Cols(`stat`).
 		Update(&types.Vin{TxId: tx.TxId, Stat: tx.Stat}); err != nil {
 		return err
 	}
-	if _, err := sess.Where("tx_id = ??", tx.TxId).
+	if _, err := sess.Where("tx_id = ?", tx.TxId).
 		Cols(`stat`).
 		Update(&types.Vout{TxId: tx.TxId, Stat: tx.Stat}); err != nil {
 		return err
 	}
-	if _, err := sess.Where("tx_id = ??", tx.TxId).
+	if _, err := sess.Where("tx_id = ?", tx.TxId).
 		Cols(`stat`).
 		Update(&types.Transfer{TxId: tx.TxId, Stat: tx.Stat}); err != nil {
 		return err
