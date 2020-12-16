@@ -23,7 +23,7 @@ func ConnectMysql(conf *config.DB) (*DB, error) {
 	engine, err := xorm.NewEngine("mysql", path)
 	if err != nil {
 		return nil, err
-	}//engine.ShowSQL(true)
+	} //engine.ShowSQL(true)
 
 	if err = engine.Sync2(
 		new(types.Block),
@@ -256,7 +256,7 @@ func updateTransactions(sess *xorm.Session, txs []*types.Transaction) error {
 		if ok, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).Get(queryTx); err != nil {
 			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
 		} else if ok {
-			if tx.Stat != stat.TX_Confirmed {
+			if queryTx.Stat != stat.TX_Confirmed {
 				if _, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).
 					Cols(`block_order`, `tx_hash`, `size`, `version`, `locktime`,
 						`timestamp`, `expire`, `confirmations`, `txsvaild`, `is_coinbase`,
