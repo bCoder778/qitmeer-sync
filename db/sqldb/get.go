@@ -60,7 +60,7 @@ func (d *DB) GetConfirmedUtxoAndBlockCount() (float64, int64, error) {
 
 	//select `order` from vout where confirmations < 720 ORDER BY `order` limit 1)
 
-	_, err := sess.Table(table).Select("`order`").Where("confirmations < ?", stat.Block_Confirmed_Value).OrderBy("`order`").Limit(1).Get(&orderValue)
+	_, err := sess.Table(table).Select("`order`").Where("confirmations < ? and `order` != ?", stat.Block_Confirmed_Value, 0).OrderBy("`order`").Limit(1).Get(&orderValue)
 
 	// select * from vout where confirmations > 720 and `order` < orderValue order by `order` desc limit 1
 	sess.Table(table).Select("`order`").Where("confirmations > ? and `order` < ?", stat.Block_Confirmed_Value, orderValue).Desc(`order`).Limit(1).Get(&orderValue)
