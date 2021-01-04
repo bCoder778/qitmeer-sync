@@ -138,12 +138,12 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 			} else {
 				vout, err := s.db.GetVout(vin.Txid, vin.Vout)
 				if err != nil {
-					return nil, fmt.Errorf("query txid%s, vout=%d failed!", vin.Txid, vin.Vout)
+					return nil, fmt.Errorf("query txid %s, vout=%d failed!", vin.Txid, vin.Vout)
 				}
 				// 可能引用同一区块vout
 				if vout.TxId == "" {
 					if vout, err = s.finVout(vin.Txid, vin.Vout, vouts); err != nil {
-						return nil, fmt.Errorf("query txid%s, vout=%d failed!", vin.Txid, vin.Vout)
+						return nil, fmt.Errorf("query txid %s, vout=%d failed!", vin.Txid, vin.Vout)
 					}
 				}
 				// 添加需要更新的被花费vout
