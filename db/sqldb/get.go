@@ -56,14 +56,15 @@ func (d *DB) GetConfirmedUtxoAndBlockCount() (float64, int64, error) {
 	defer sess.Close()
 
 	table := new(types.Vout)
+	block := new(types.Block)
 	var orderValue int64
 
 	//select `order` from vout where confirmations < 720 ORDER BY `order` limit 1)
 
-	_, err := sess.Table(table).Select("`order`").Where("confirmations < ? and `order` != ?", stat.Block_Confirmed_Value, 0).OrderBy("`order`").Limit(1).Get(&orderValue)
+	_, err := sess.Table(block).Select("`order`").Where("confirmations < ? and `order` != ?", stat.Block_Confirmed_Value, 0).OrderBy("`order`").Limit(1).Get(&orderValue)
 
 	// select * from vout where confirmations > 720 and `order` < orderValue order by `order` desc limit 1
-	sess.Table(table).Select("`order`").Where("confirmations > ? and `order` < ?", stat.Block_Confirmed_Value, orderValue).Desc(`order`).Limit(1).Get(&orderValue)
+	sess.Table(block).Select("`order`").Where("confirmations > ? and `order` < ?", stat.Block_Confirmed_Value, orderValue).Desc(`order`).Limit(1).Get(&orderValue)
 
 	txIds := []string{}
 	sess.Table(table).Select("tx_id").Where("`order` > ?", orderValue).Find(&txIds)
@@ -77,6 +78,6 @@ func (d *DB) GetConfirmedUtxoAndBlockCount() (float64, int64, error) {
 		And("`order` <= ? and stat = ?", orderValue, stat.TX_Confirmed).
 		Sum(table, "amount")
 
-	count, err := d.engine.Table(new(types.Block)).Where("stat = ? and `order` <= ?", stat.Block_Confirmed, orderValue).Count()
+	count, err := d.engine.Table(block).Where("stat = ? and `order` <= ?", stat.Block_Confirmed, orderValue).Count()
 	return utxo, count, err
 }
