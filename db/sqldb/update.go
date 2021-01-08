@@ -280,11 +280,11 @@ func updateTransfers(sess *xorm.Session, transfers []*types.Transfer) error {
 	// 更新transaction
 	for _, tras := range transfers {
 		queryTransfer := &types.Transfer{}
-		if ok, err := sess.Where("tx_id = ? and address = ?", tras.TxId, tras.Address).Get(queryTransfer); err != nil {
+		if ok, err := sess.Where("tx_id = ? and address = ? and coin_id = ?", tras.TxId, tras.Address, tras.CoinId).Get(queryTransfer); err != nil {
 			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
 		} else if ok {
 			if queryTransfer.Stat != stat.TX_Confirmed {
-				if _, err := sess.Where("tx_id = ? and address = ?", tras.TxId, tras.Address).
+				if _, err := sess.Where("tx_id = ? and address = ? and coin_id = ?", tras.TxId, tras.Address, tras.CoinId).
 					Cols(`confirmations`, `txsvaild`, `stat`).Update(tras); err != nil {
 					return err
 				}

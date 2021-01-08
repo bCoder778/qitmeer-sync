@@ -81,6 +81,7 @@ type ScriptSig struct {
 }
 
 type Vout struct {
+	CoinID       string       `json:"coinid"`
 	Amount       uint64       `json:"amount"`
 	ScriptPubKey ScriptPubKey `json:"scriptpubkey"`
 }

@@ -29,11 +29,6 @@ func (d *DB) GetLastUnconfirmedOrder() (uint64, error) {
 	return block.Order, err
 }
 
-func (d *DB) GetConfirmedUtxo() float64 {
-	amount, _ := d.engine.Where("spent_tx = ? and stat = ? and confirmations > ?", "", stat.TX_Confirmed, stat.Block_Confirmed_Value).Sum(new(types.Vout), "amount")
-	return amount
-}
-
 func (d *DB) GetConfirmedBlockCount() int64 {
 	count, _ := d.engine.Table(new(types.Block)).Where("stat = ?", stat.Block_Confirmed).Count()
 	return count

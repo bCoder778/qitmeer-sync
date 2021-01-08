@@ -53,8 +53,6 @@ type Transaction struct {
 	IsCoinbase    bool        `xorm:"bool" json:"iscoinbase"`
 	Vins          int         `xorm:"int" json:"vin"`
 	Vouts         int         `xorm:"int" json:"vout"`
-	TotalVin      uint64      `xorm:"bigint" json:"totalvin"`
-	TotalVout     uint64      `xorm:"bigint" json:"totalvout"`
 	Fees          uint64      `xorm:"bigint" json:"fees"`
 	Duplicate     bool        `xorm:"bool" json:"duplicate"`
 	Stat          stat.TxStat `xorm:"int" json:"stat"`
@@ -64,6 +62,7 @@ type Transfer struct {
 	Id            uint64      `xorm:"bigint autoincr pk" json:"id"`
 	TxId          string      `xorm:"varchar(64) index" json:"txid"`
 	Address       string      `xorm:"varchar(35) index" json:"address"`
+	CoinId        string      `xorm:"varchar(5) index" json:"conid"`
 	Confirmations uint64      `xorm:"bigint" json:"confirmations"`
 	Txsvaild      bool        `xorm:"bool" json:"txsvaild"`
 	IsCoinbase    bool        `xorm:"bool " json:"iscoinbase"`
@@ -80,6 +79,7 @@ type Vin struct {
 	Order         uint64      `xorm:"bigint" json:"order"`
 	Timestamp     int64       `xorm:"bigint" json:"timestamp"`
 	Address       string      `xorm:"varchar(35) index" json:"address"`
+	CoinId        string      `xorm:"varchar(5)" json:"conid"`
 	Amount        uint64      `xorm:"bigint" json:"amount"`
 	SpentedTx     string      `xorm:"varchar(64)" json:"spentedtx"`
 	Vout          int         `xorm:"int index(queryvin)" json:"vout"`
@@ -97,6 +97,7 @@ type Vout struct {
 	Timestamp              int64         `xorm:"bigint" json:"timestamp"`
 	Address                string        `xorm:"varchar(35) index" json:"address"`
 	Amount                 uint64        `xorm:"bigint" json:"amount"`
+	CoinId                 string        `xorm:"varchar(5)" json:"conid"`
 	ScriptPubKey           *ScriptPubKey `xorm:"json" json:"scriptpubkey"`
 	SpentTx                string        `xorm:"varchar(64)" json:"spenttx"`
 	SpentNumber            int           `xorm:"int" json:"spentnumber"`

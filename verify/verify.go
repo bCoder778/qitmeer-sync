@@ -13,6 +13,12 @@ const (
 	GenesisUTXO = 6524293004366634
 )
 
+const (
+	MEERID  = "MEER"
+	QITID   = "QIT"
+	PMEERID = "PMEER"
+)
+
 type QitmeerVerify struct {
 	conf *config.Verify
 	db   db.IDB

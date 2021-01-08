@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/bCoder778/qitmeer-sync/rpc"
 	"github.com/bCoder778/qitmeer-sync/storage/types"
+	"github.com/bCoder778/qitmeer-sync/verify"
 	"github.com/bCoder778/qitmeer-sync/verify/stat"
 )
 
@@ -146,6 +147,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 						return nil, fmt.Errorf("query txid %s, vout=%d failed!", vin.Txid, vin.Vout)
 					}
 				}
+
 				// 添加需要更新的被花费vout
 				if status == stat.TX_Confirmed {
 					vout.SpentTx = rpcTx.Txid
@@ -160,13 +162,14 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 				address = vout.Address
 				amount = vout.Amount
 				totalVin += amount
-				addressInOut.AddAddressIn(address, int64(amount))
+				addressInOut.AddAddressIn(address, vout.CoinId, int64(amount))
 				newVin := &types.Vin{
 					TxId:      rpcTx.Txid,
 					SpentedTx: vout.TxId,
 					Order:     order,
 					Address:   address,
 					Vout:      vin.Vout,
+					CoinId:    vout.CoinId,
 					Amount:    amount,
 					Number:    index,
 					Sequence:  vin.Sequence,
@@ -184,11 +187,16 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 
 		// 添加新的vout
 		for index, vout := range rpcTx.Vout {
+			if vout.CoinID == "" {
+				// 0.9的网络
+				vout.CoinID = verify.PMEERID
+			}
 			newVout := &types.Vout{
 				TxId:    rpcTx.Txid,
 				Order:   order,
 				Address: vout.ScriptPubKey.Addresses[0],
 				Amount:  vout.Amount,
+				CoinId:  vout.CoinID,
 				Number:  index,
 				ScriptPubKey: &types.ScriptPubKey{
 					Asm:     vout.ScriptPubKey.Asm,
@@ -206,7 +214,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 			}
 			totalVout += vout.Amount
 			vouts = append(vouts, newVout)
-			addressInOut.AddAddressOut(newVout.Address, int64(newVout.Amount))
+			addressInOut.AddAddressOut(newVout.Address, vout.CoinID, int64(newVout.Amount))
 		}
 		if totalVin > totalVout {
 			fees = totalVin - totalVout
@@ -226,8 +234,6 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 			IsCoinbase:    s.verify.IsCoinBase(&rpcTx),
 			Vins:          len(rpcTx.Vin),
 			Vouts:         len(rpcTx.Vout),
-			TotalVin:      totalVin,
-			TotalVout:     totalVout,
 			Fees:          fees,
 			Duplicate:     rpcTx.Duplicate,
 			Stat:          status,
@@ -241,6 +247,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 				TxId:          tx.TxId,
 				Address:       change.Address,
 				Confirmations: tx.Confirmations,
+				CoinId:        change.CoinID,
 				Txsvaild:      tx.Txsvaild,
 				IsCoinbase:    tx.IsCoinbase,
 				Change:        change.Change,
@@ -282,27 +289,34 @@ type AddressInOut struct {
 	TotalOut int64
 }
 
+type Key struct {
+	Address string
+	CoinID  string
+}
+
 type AddressChange struct {
 	Address string
 	Change  int64
+	CoinID  string
 }
 
 type AddressInOutMap struct {
-	addrMap map[string]*AddressInOut
+	addrMap map[Key]*AddressInOut
 }
 
 func NewAddressInOutMap() *AddressInOutMap {
 	return &AddressInOutMap{
-		addrMap: make(map[string]*AddressInOut),
+		addrMap: make(map[Key]*AddressInOut),
 	}
 }
 
-func (a *AddressInOutMap) AddAddressIn(address string, inAmount int64) {
-	inOut, ok := a.addrMap[address]
+func (a *AddressInOutMap) AddAddressIn(address, coinID string, inAmount int64) {
+	key := Key{address, coinID}
+	inOut, ok := a.addrMap[key]
 	if ok {
 		inOut.TotalIn += inAmount
 	} else {
-		a.addrMap[address] = &AddressInOut{
+		a.addrMap[key] = &AddressInOut{
 			Address:  address,
 			TotalIn:  inAmount,
 			TotalOut: 0,
@@ -310,12 +324,13 @@ func (a *AddressInOutMap) AddAddressIn(address string, inAmount int64) {
 	}
 }
 
-func (a *AddressInOutMap) AddAddressOut(address string, outAmount int64) {
-	inOut, ok := a.addrMap[address]
+func (a *AddressInOutMap) AddAddressOut(address, coinID string, outAmount int64) {
+	key := Key{address, coinID}
+	inOut, ok := a.addrMap[key]
 	if ok {
 		inOut.TotalOut += outAmount
 	} else {
-		a.addrMap[address] = &AddressInOut{
+		a.addrMap[key] = &AddressInOut{
 			Address:  address,
 			TotalIn:  0,
 			TotalOut: outAmount,
@@ -325,9 +340,10 @@ func (a *AddressInOutMap) AddAddressOut(address string, outAmount int64) {
 
 func (a *AddressInOutMap) AddressChange() []*AddressChange {
 	addrChanges := []*AddressChange{}
-	for address, inOut := range a.addrMap {
+	for key, inOut := range a.addrMap {
 		addrChanges = append(addrChanges, &AddressChange{
-			Address: address,
+			Address: key.Address,
+			CoinID:  key.CoinID,
 			Change:  inOut.TotalOut - inOut.TotalIn,
 		})
 	}
