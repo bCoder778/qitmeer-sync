@@ -11,7 +11,7 @@ var (
 	GitStatus      = "unknown_unknown"
 	BuildTime      = "unknown_unknown"
 	BuildGoVersion = "unknown_unknown"
-	Version        = "v0.1.4"
+	Version        = "v0.1.5"
 )
 
 // 返回单行格式
