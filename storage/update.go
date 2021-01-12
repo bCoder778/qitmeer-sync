@@ -149,14 +149,10 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 				}
 
 				// 添加需要更新的被花费vout
-				if status == stat.TX_Confirmed {
+				if status != stat.TX_Failed {
 					vout.SpentTx = rpcTx.Txid
-					vout.SpentNumber = index
-				} else if status == stat.TX_Unconfirmed || status == stat.TX_Memry {
-					vout.UnconfirmedSpentTx = rpcTx.Txid
-					vout.UnconfirmedSpentNumber = index
+					spentedVouts = append(spentedVouts, vout)
 				}
-				spentedVouts = append(spentedVouts, vout)
 
 				// 添加新的vin
 				address = vout.Address
@@ -204,13 +200,10 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 					ReqSigs: vout.ScriptPubKey.ReqSigs,
 					Type:    vout.ScriptPubKey.Type,
 				},
-				SpentTx:                "",
-				SpentNumber:            0,
-				UnconfirmedSpentTx:     "",
-				UnconfirmedSpentNumber: 0,
-				Confirmations:          rpcTx.Confirmations,
-				Stat:                   status,
-				Timestamp:              rpcTx.Timestamp.Unix(),
+				SpentTx:       "",
+				Confirmations: rpcTx.Confirmations,
+				Stat:          status,
+				Timestamp:     rpcTx.Timestamp.Unix(),
 			}
 			totalVout += vout.Amount
 			vouts = append(vouts, newVout)

@@ -90,21 +90,18 @@ type Vin struct {
 }
 
 type Vout struct {
-	Id                     uint64        `xorm:"bigint autoincr pk" json:"id"`
-	TxId                   string        `xorm:"varchar(64) index" json:"txid"`
-	Number                 int           `xorm:"int index" json:"number"`
-	Order                  uint64        `xorm:"bigint" json:"order"`
-	Timestamp              int64         `xorm:"bigint" json:"timestamp"`
-	Address                string        `xorm:"varchar(35) index" json:"address"`
-	Amount                 uint64        `xorm:"bigint" json:"amount"`
-	CoinId                 string        `xorm:"varchar(5)" json:"conid"`
-	ScriptPubKey           *ScriptPubKey `xorm:"json" json:"scriptpubkey"`
-	SpentTx                string        `xorm:"varchar(64)" json:"spenttx"`
-	SpentNumber            int           `xorm:"int" json:"spentnumber"`
-	UnconfirmedSpentTx     string        `xorm:"varchar(64)" json:"unconfirmedspenttx"`
-	UnconfirmedSpentNumber int           `xorm:"int" json:"unconfirmedspentnumber"`
-	Confirmations          uint64        `xorm:"bigint" json:"confirmations"`
-	Stat                   stat.TxStat   `xorm:"stat" json:"stat"`
+	Id            uint64        `xorm:"bigint autoincr pk" json:"id"`
+	TxId          string        `xorm:"varchar(64) index" json:"txid"`
+	Number        int           `xorm:"int index" json:"number"`
+	Order         uint64        `xorm:"bigint" json:"order"`
+	Timestamp     int64         `xorm:"bigint" json:"timestamp"`
+	Address       string        `xorm:"varchar(35) index" json:"address"`
+	Amount        uint64        `xorm:"bigint" json:"amount"`
+	CoinId        string        `xorm:"varchar(5)" json:"conid"`
+	ScriptPubKey  *ScriptPubKey `xorm:"json" json:"scriptpubkey"`
+	SpentTx       string        `xorm:"varchar(64)" json:"spenttx"`
+	Confirmations uint64        `xorm:"bigint" json:"confirmations"`
+	Stat          stat.TxStat   `xorm:"stat" json:"stat"`
 }
 
 type ScriptPubKey struct {

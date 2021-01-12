@@ -80,43 +80,43 @@ func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vins
 	}
 
 	if err := updateBlock(sess, block); err != nil {
-		if err := sess.Rollback(); err != nil {
-			return fmt.Errorf("roll back failed! %s", err.Error())
+		if errR := sess.Rollback(); errR != nil {
+			return fmt.Errorf("roll back failed! %s", errR.Error())
 		}
 		return err
 	}
 
 	if err := updateTransactions(sess, txs); err != nil {
-		if err := sess.Rollback(); err != nil {
-			return fmt.Errorf("roll back failed! %s", err.Error())
+		if errR := sess.Rollback(); errR != nil {
+			return fmt.Errorf("roll back failed! %s", errR.Error())
 		}
 		return err
 	}
 
 	if err := updateTransfers(sess, transfers); err != nil {
-		if err := sess.Rollback(); err != nil {
-			return fmt.Errorf("roll back failed! %s", err.Error())
+		if errR := sess.Rollback(); errR != nil {
+			return fmt.Errorf("roll back failed! %s", errR.Error())
 		}
 		return err
 	}
 
 	if err := updateSpentedVinouts(sess, spentedVouts); err != nil {
-		if err := sess.Rollback(); err != nil {
-			return fmt.Errorf("roll back failed! %s", err.Error())
+		if errR := sess.Rollback(); errR != nil {
+			return fmt.Errorf("roll back failed! %s", errR.Error())
 		}
 		return err
 	}
 
 	if err := updateVins(sess, vins); err != nil {
-		if err := sess.Rollback(); err != nil {
-			return fmt.Errorf("roll back failed! %s", err.Error())
+		if errR := sess.Rollback(); errR != nil {
+			return fmt.Errorf("roll back failed! %s", errR.Error())
 		}
 		return err
 	}
 
 	if err := updateVouts(sess, vouts); err != nil {
-		if err := sess.Rollback(); err != nil {
-			return fmt.Errorf("roll back failed! %s", err.Error())
+		if errR := sess.Rollback(); errR != nil {
+			return fmt.Errorf("roll back failed! %s", errR.Error())
 		}
 		return err
 	}
@@ -136,36 +136,36 @@ func (d *DB) UpdateTransactionDatas(txs []*types.Transaction, vins []*types.Vin,
 	}
 
 	if err := updateTransactions(sess, txs); err != nil {
-		if err := sess.Rollback(); err != nil {
-			return fmt.Errorf("roll back failed! %s", err.Error())
+		if errR := sess.Rollback(); errR != nil {
+			return fmt.Errorf("roll back failed! %s", errR.Error())
 		}
 		return err
 	}
 
 	if err := updateTransfers(sess, transfers); err != nil {
-		if err := sess.Rollback(); err != nil {
-			return fmt.Errorf("roll back failed! %s", err.Error())
+		if errR := sess.Rollback(); errR != nil {
+			return fmt.Errorf("roll back failed! %s", errR.Error())
 		}
 		return err
 	}
 
 	if err := updateSpentedVinouts(sess, spentedVouts); err != nil {
-		if err := sess.Rollback(); err != nil {
-			return fmt.Errorf("roll back failed! %s", err.Error())
+		if errR := sess.Rollback(); errR != nil {
+			return fmt.Errorf("roll back failed! %s", errR.Error())
 		}
 		return err
 	}
 
 	if err := updateVins(sess, vins); err != nil {
-		if err := sess.Rollback(); err != nil {
-			return fmt.Errorf("roll back failed! %s", err.Error())
+		if errR := sess.Rollback(); errR != nil {
+			return fmt.Errorf("roll back failed! %s", errR.Error())
 		}
 		return err
 	}
 
 	if err := updateVouts(sess, vouts); err != nil {
-		if err := sess.Rollback(); err != nil {
-			return fmt.Errorf("roll back failed! %s", err.Error())
+		if errR := sess.Rollback(); errR != nil {
+			return fmt.Errorf("roll back failed! %s", errR.Error())
 		}
 		return err
 	}
@@ -216,12 +216,11 @@ func updateVouts(sess *xorm.Session, vouts []*types.Vout) error {
 			if queryVout.Stat != stat.TX_Confirmed {
 				if vout.SpentTx != "" {
 					cols = []string{`order`, `timestamp`, `address`, `amount`,
-						`script_pub_key`, `spent_tx`, `spent_number`, "confirmations",
+						`script_pub_key`, `spent_tx`, "confirmations",
 						`stat`}
-				} else if vout.SpentTx == "" && vout.UnconfirmedSpentTx != "" {
+				} else if vout.SpentTx == "" {
 					cols = []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`,
-						`unconfirmed_spent_tx`, `unconfirmed_spent_number`, `spented_tx`, `vout`,
-						"confirmations", `sequence`, `script_sig`, `stat`}
+						`spented_tx`, "confirmations", `sequence`, `script_sig`, `stat`}
 				}
 
 				if _, err := sess.Where("tx_id = ? and number = ?", vout.TxId, vout.Number).
@@ -242,7 +241,7 @@ func updateSpentedVinouts(sess *xorm.Session, vouts []*types.Vout) error {
 	// 更新spentedVouts
 	for _, vout := range vouts {
 		if _, err := sess.Where("tx_id = ? and number = ?", vout.TxId, vout.Number).
-			Cols("spent_tx", "spent_number", "unconfirmed_spent_tx", "unconfirmed_spent_number").Update(vout); err != nil {
+			Cols("spent_tx").Update(vout); err != nil {
 			return err
 		}
 	}
@@ -350,6 +349,11 @@ func (d *DB) UpdateTransactionStat(tx *types.Transaction) error {
 	if _, err := sess.Where("tx_id = ?", tx.TxId).
 		Cols(`stat`).
 		Update(&types.Transfer{TxId: tx.TxId, Stat: tx.Stat}); err != nil {
+		return err
+	}
+	if _, err := sess.Where("spent_tx = ?", tx.TxId).
+		Cols("spent_tx").
+		Update(&types.Vout{SpentTx: ""}); err != nil {
 		return err
 	}
 	if err := sess.Commit(); err != nil {
