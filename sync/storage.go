@@ -12,7 +12,7 @@ type IStorage interface {
 	IQueryBlock
 	IQueryTransaction
 	IList
-
+	IVerify
 	Close() error
 }
 
@@ -37,4 +37,8 @@ type IQueryTransaction interface {
 }
 
 type IList interface {
+}
+
+type IVerify interface {
+	VerifyQitmeer(block *rpc.Block) (bool, error)
 }

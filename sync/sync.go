@@ -30,7 +30,6 @@ type QitmeerSync struct {
 	uncfmTxBlockCh   chan *rpc.Block
 	interupt         chan struct{}
 	wg               sync.WaitGroup
-	ve               *verify.QitmeerVerify
 	verifyFiledCount int
 }
 
@@ -48,7 +47,6 @@ func NewQitmeerSync() (*QitmeerSync, error) {
 		reUncfmTxSync:    make(chan struct{}, 1),
 		interupt:         make(chan struct{}, 1),
 		wg:               sync.WaitGroup{},
-		ve:               ve,
 	}, nil
 }
 
@@ -290,7 +288,7 @@ func (qs *QitmeerSync) saveBlock(group *sync.WaitGroup) {
 				return
 			}
 			log.Infof("Save block %d", block.Order)
-			if _, err := qs.ve.VerifyQitmeer(block); err != nil {
+			if _, err := qs.storage.VerifyQitmeer(block); err != nil {
 				//log.Mailf(config.Setting.Email.Title, "Failed to verify block %d %s, err:%v", block.Order, block.Hash, err)
 				// 验证失败
 				qs.verifyFiledCount++

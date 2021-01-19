@@ -2,6 +2,7 @@ package verify
 
 import (
 	"fmt"
+	"github.com/bCoder778/log"
 	"github.com/bCoder778/qitmeer-sync/config"
 	"github.com/bCoder778/qitmeer-sync/db"
 	"github.com/bCoder778/qitmeer-sync/rpc"
@@ -106,6 +107,7 @@ func (qv *QitmeerVerify) verifyAllAccount(utxo uint64, count int64) (bool, error
 	if should != utxo {
 		return false, fmt.Errorf("all account %d is inconsistent with %d", utxo, should)
 	}
+	log.Infof("verify success, all utxo is %d", utxo)
 	return true, nil
 }
 
@@ -150,7 +152,7 @@ func (qv *QitmeerVerify) VerifyQitmeer(rpcBlock *rpc.Block) (bool, error) {
 		return true, nil
 	}
 	if qv.conf.UTXO {
-		utxo, count, err := qv.db.GetConfirmedUtxoAndBlockCount()
+		utxo, count, err := qv.db.GetAllUtxoAndBlockCount()
 		if err != nil {
 			return false, err
 		}

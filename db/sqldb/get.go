@@ -38,7 +38,16 @@ func (d *DB) GetAllUtxoAndBlockCount() (float64, int64, error) {
 	sess := d.engine.NewSession()
 	defer sess.Close()
 
-	utxo, err := sess.Where("spent_tx = ? and stat != ?", "", stat.TX_Failed).Sum(new(types.Vout), "amount")
+	table := new(types.Vout)
+	txIds := []string{}
+	sess.Table(table).Select("tx_id").Where("stat = ?", stat.TX_Memry).Find(&txIds)
+	params := []interface{}{}
+	for _, txId := range txIds {
+		params = append(params, txId)
+	}
+
+	utxo, err := sess.In("spent_tx", params...).Or("spent_tx = ?", "").
+		And("stat in (?, ?)", stat.TX_Confirmed, stat.TX_Unconfirmed).Sum(new(types.Vout), "amount")
 	if err != nil {
 		return 0, 0, err
 	}
