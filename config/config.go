@@ -73,6 +73,7 @@ type Verify struct {
 	UTXO     bool   `toml:"utxo"`
 	Fees     bool   `toml:"fees"`
 	Interval uint64 `toml:"interval"`
+	Version  string `toml:"version"`
 }
 
 func Exist(fileName string) bool {

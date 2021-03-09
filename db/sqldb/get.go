@@ -1,6 +1,7 @@
 package sqldb
 
 import (
+	"fmt"
 	"github.com/bCoder778/qitmeer-sync/storage/types"
 	"github.com/bCoder778/qitmeer-sync/verify/stat"
 )
@@ -34,25 +35,36 @@ func (d *DB) GetConfirmedBlockCount() int64 {
 	return count
 }
 
-func (d *DB) GetAllUtxoAndBlockCount() (float64, int64, error) {
+func (d *DB) GetAllUtxoAndBlockCount() (map[string]float64, int64, error) {
 	sess := d.engine.NewSession()
 	defer sess.Close()
 
 	table := new(types.Vout)
 	txIds := []string{}
-	sess.Table(table).Select("tx_id").Where("stat = ?", stat.TX_Memry).Find(&txIds)
-	params := []interface{}{}
-	for _, txId := range txIds {
-		params = append(params, txId)
+	coinIds := []string{}
+	utxos := map[string]float64{}
+	sess.Table(table).Select("coin_id").GroupBy("coin_id").Find(&coinIds)
+	if len(coinIds) == 0 {
+		return nil, 0, fmt.Errorf("no coin")
 	}
 
-	utxo, err := sess.In("spent_tx", params...).Or("spent_tx = ?", "").
-		And("stat in (?, ?)", stat.TX_Confirmed, stat.TX_Unconfirmed).Sum(new(types.Vout), "amount")
-	if err != nil {
-		return 0, 0, err
+	for _, coinId := range coinIds {
+		sess.Table(table).Select("tx_id").Where("coin_id = ?, stat = ?", coinId, stat.TX_Memry).Find(&txIds)
+		params := []interface{}{""}
+		for _, txId := range txIds {
+			params = append(params, txId)
+		}
+
+		utxo, err := sess.In("spent_tx", params...).Or("spent_tx = ?", "").
+			And("coin_id = ? and stat in (?, ?)", coinId, stat.TX_Confirmed, stat.TX_Unconfirmed).Sum(new(types.Vout), "amount")
+		if err != nil {
+			return nil, 0, err
+		}
+		utxos[coinId] = utxo
 	}
+
 	count, err := d.engine.Table(new(types.Block)).Where("stat in (?, ?)", stat.Block_Confirmed, stat.Block_Unconfirmed).Count()
-	return utxo, count, err
+	return utxos, count, err
 }
 
 func (d *DB) GetConfirmedUtxoAndBlockCount() (float64, int64, error) {

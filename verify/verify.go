@@ -5,13 +5,9 @@ import (
 	"github.com/bCoder778/log"
 	"github.com/bCoder778/qitmeer-sync/config"
 	"github.com/bCoder778/qitmeer-sync/db"
+	"github.com/bCoder778/qitmeer-sync/params"
 	"github.com/bCoder778/qitmeer-sync/rpc"
 	"github.com/bCoder778/qitmeer-sync/verify/stat"
-)
-
-const (
-	BlockReward = 12000000000
-	GenesisUTXO = 6524293004366634
 )
 
 const (
@@ -21,12 +17,20 @@ const (
 )
 
 type QitmeerVerify struct {
-	conf *config.Verify
-	db   db.IDB
+	conf   *config.Verify
+	db     db.IDB
+	params *params.Params
 }
 
 func NewQitmeerVerfiy(conf *config.Verify, db db.IDB) *QitmeerVerify {
-	return &QitmeerVerify{conf: conf, db: db}
+	para := params.Qitmeer9Params
+	switch conf.Version {
+	case "0.9":
+		para = params.Qitmeer9Params
+	case "0.10":
+		para = params.Qitmeer10Params
+	}
+	return &QitmeerVerify{conf: conf, db: db, params: &para}
 }
 
 func (qv *QitmeerVerify) BlockStat(block *rpc.Block) stat.BlockStat {
@@ -102,19 +106,32 @@ func (qv *QitmeerVerify) isDuplicateCoinBase(block *rpc.Block) bool {
 	return false
 }
 
-func (qv *QitmeerVerify) verifyAllAccount(utxo uint64, count int64) (bool, error) {
-	should := (uint64(count)-1)*BlockReward + GenesisUTXO
-	if should != utxo {
-		return false, fmt.Errorf("all account %d is inconsistent with %d", utxo, should)
+func (qv *QitmeerVerify) verifyCoinAllAccount(utxo uint64, count int64, coinId string) (bool, error) {
+	switch coinId {
+	case MEERID:
+		fallthrough
+	case PMEERID:
+		should := (uint64(count)-1)*qv.params.BlockReward + qv.params.GenesisUTXO[coinId]
+		if should != utxo {
+			return false, fmt.Errorf("%d account %d is inconsistent with %d", coinId, utxo, should)
+		}
+		log.Infof("verify success, %s all utxo is %d", coinId, utxo)
+		return true, nil
+	default:
+		should := qv.params.GenesisUTXO[coinId]
+		if should != utxo {
+			return false, fmt.Errorf("%d account %d is inconsistent with %d", coinId, utxo, should)
+		}
+		log.Infof("verify success, %s all utxo is %d", coinId, utxo)
+		return true, nil
 	}
-	log.Infof("verify success, all utxo is %d", utxo)
-	return true, nil
+
 }
 
 func (qv *QitmeerVerify) verifyFees(block *rpc.Block) (bool, error) {
-	var coinbaseFees uint64
-	var totalIn, totalOut uint64
-
+	mapIn := map[string]uint64{}
+	mapOut := map[string]uint64{}
+	mapFees := map[string]uint64{}
 	if !block.Txsvalid {
 		return true, nil
 	}
@@ -123,23 +140,48 @@ func (qv *QitmeerVerify) verifyFees(block *rpc.Block) (bool, error) {
 			continue
 		}
 		if qv.IsCoinBase(&tx) {
-			coinbaseFees = tx.Vout[0].Amount - BlockReward
+			if tx.Vout[0].CoinID != MEERID {
+				return false, fmt.Errorf("block %d, coinbase transaction %s, vout 0 is not meer", block.Order, tx.Txid)
+			}
+			for _, vout := range tx.Vout {
+				if vout.CoinID == MEERID {
+					mapFees[vout.CoinID] = vout.Amount - qv.params.BlockReward
+				} else if vout.CoinID == "" {
+					mapFees[PMEERID] = vout.Amount - qv.params.BlockReward
+				} else {
+					mapFees[vout.CoinID] = vout.Amount
+				}
+			}
 		} else if !tx.Duplicate {
 			for _, vin := range tx.Vin {
 				utxo, err := qv.db.GetVout(vin.Txid, vin.Vout)
 				if err != nil {
 					return false, err
 				}
-				totalIn += utxo.Amount
+				in, ok := mapIn[utxo.CoinId]
+				if ok {
+					mapIn[utxo.CoinId] = in + utxo.Amount
+				} else {
+					mapIn[utxo.CoinId] = utxo.Amount
+				}
 			}
 			for _, vout := range tx.Vout {
-				totalOut += vout.Amount
+				out, ok := mapOut[vout.CoinID]
+				if ok {
+					mapOut[vout.CoinID] = out + vout.Amount
+				} else {
+					mapOut[vout.CoinID] = vout.Amount
+				}
 			}
 		}
 	}
-	fees := totalIn - totalOut
-	if coinbaseFees != fees {
-		return false, fmt.Errorf("verify block %d coinbase fees is %d is inconsistent with %d", block.Order, coinbaseFees, fees)
+	for coinId, fees := range mapFees {
+		totalIn := mapIn[coinId]
+		totalOut := mapOut[coinId]
+		calFees := totalIn - totalOut
+		if fees != calFees {
+			return false, fmt.Errorf("verify block %d %s fees is %d is inconsistent with %d", block.Order, coinId, fees, calFees)
+		}
 	}
 	return true, nil
 }
@@ -152,12 +194,14 @@ func (qv *QitmeerVerify) VerifyQitmeer(rpcBlock *rpc.Block) (bool, error) {
 		return true, nil
 	}
 	if qv.conf.UTXO {
-		utxo, count, err := qv.db.GetAllUtxoAndBlockCount()
+		utxos, count, err := qv.db.GetAllUtxoAndBlockCount()
 		if err != nil {
 			return false, err
 		}
-		if ok, err := qv.verifyAllAccount(uint64(utxo), count); !ok {
-			return false, err
+		for coinId, utxo := range utxos {
+			if ok, err := qv.verifyCoinAllAccount(uint64(utxo), count, coinId); !ok {
+				return false, err
+			}
 		}
 	}
 	if qv.conf.Fees {

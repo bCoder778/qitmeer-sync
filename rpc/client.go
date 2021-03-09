@@ -73,7 +73,7 @@ func (c *Client) GetMainChainHeight() (uint64, error) {
 }
 
 func (c *Client) SendTransaction(tx string) (string, error) {
-	params := []interface{}{strings.Trim(tx, "\n"), false}
+	params := []interface{}{strings.Trim(tx, "\n"), true}
 	resp := NewReqeust(params).SetMethod("sendRawTransaction").call(c.rpcAuth)
 	if resp.Error != nil {
 		return resp.Error.Message, errors.New(resp.Error.Message)

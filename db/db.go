@@ -32,7 +32,7 @@ type IGet interface {
 	GetTransaction(txId string, blockHash string) (*types.Transaction, error)
 	GetVout(txId string, vout int) (*types.Vout, error)
 	GetConfirmedBlockCount() int64
-	GetAllUtxoAndBlockCount() (float64, int64, error)
+	GetAllUtxoAndBlockCount() (map[string]float64, int64, error)
 	GetConfirmedUtxoAndBlockCount() (float64, int64, error)
 }
 

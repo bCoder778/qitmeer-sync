@@ -3,13 +3,14 @@ host="http://127.0.0.1:1234"
 admin="admin"
 password="123"
 
+
 [db]
 # mysql | sqlserver
 dbtype="mysql"
 user="root"
 password="kahfxwxsx113"
 address="127.0.0.1:3306"
-dbname="qitmeersync3"
+dbname="qitmeersync"
 
 [log]
 # console=12 | file=11
@@ -29,8 +30,10 @@ to=[""]
 [verify]
 utxo=true
 fees=true
-interval=100
+interval=1
+version="0.10"
 
 [resources]
 cpu-number=16
 gc-percent=20
+
