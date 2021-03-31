@@ -89,6 +89,7 @@ func (s *Storage) UpdateTransactionStat(txId string, stat stat.TxStat) error {
 func (s *Storage) crateBlock(rpcBlock *rpc.Block) *types.Block {
 	miner := s.BlockMiner(rpcBlock)
 	block := &types.Block{
+		Id:            rpcBlock.Id,
 		Hash:          rpcBlock.Hash,
 		Txvalid:       rpcBlock.Txsvalid,
 		Confirmations: rpcBlock.Confirmations,

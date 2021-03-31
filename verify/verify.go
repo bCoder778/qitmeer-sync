@@ -113,14 +113,14 @@ func (qv *QitmeerVerify) verifyCoinAllAccount(utxo uint64, count int64, coinId s
 	case PMEERID:
 		should := (uint64(count)-1)*qv.params.BlockReward + qv.params.GenesisUTXO[coinId]
 		if should != utxo {
-			return false, fmt.Errorf("%d account %d is inconsistent with %d", coinId, utxo, should)
+			return false, fmt.Errorf("%s account %d is inconsistent with %d", coinId, utxo, should)
 		}
 		log.Infof("verify success, %s all utxo is %d", coinId, utxo)
 		return true, nil
 	default:
 		should := qv.params.GenesisUTXO[coinId]
 		if should != utxo {
-			return false, fmt.Errorf("%d account %d is inconsistent with %d", coinId, utxo, should)
+			return false, fmt.Errorf("%s account %d is inconsistent with %d", coinId, utxo, should)
 		}
 		log.Infof("verify success, %s all utxo is %d", coinId, utxo)
 		return true, nil
@@ -140,8 +140,8 @@ func (qv *QitmeerVerify) verifyFees(block *rpc.Block) (bool, error) {
 			continue
 		}
 		if qv.IsCoinBase(&tx) {
-			if tx.Vout[0].CoinID != MEERID {
-				return false, fmt.Errorf("block %d, coinbase transaction %s, vout 0 is not meer", block.Order, tx.Txid)
+			if tx.Vout[0].CoinID != MEERID && tx.Vout[0].CoinID != "" {
+				return false, fmt.Errorf("block %d, coinbase transaction %s, vout 0 is not meer or pmeer", block.Order, tx.Txid)
 			}
 			for _, vout := range tx.Vout {
 				if vout.CoinID == MEERID {

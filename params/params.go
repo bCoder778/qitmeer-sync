@@ -8,7 +8,7 @@ type Params struct {
 var Qitmeer9Params = Params{
 	BlockReward: 120 * 1e8,
 	GenesisUTXO: map[string]uint64{
-		"MEER": 6524293004366634,
+		"PMEER": 6524293004366634,
 	},
 }
 

@@ -242,7 +242,7 @@ func (qs *QitmeerSync) dealTransaction(tx types.Transaction) {
 func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 	defer group.Done()
 
-	start := qs.storage.LastOrder()
+	start := qs.storage.LastId()
 	if start <= 5 {
 		start = 0
 	} else {
@@ -257,19 +257,12 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 			log.Info("Shutdown request block")
 			return
 		default:
-			block, err := qs.rpc.GetBlock(start)
+			block, err := qs.getBlockById(start)
 			if err != nil {
-				log.Debugf("Request block %d failed! %s", start, err.Error())
+				log.Debugf("Request block id %d failed! %s", start, err.Error())
 				time.Sleep(time.Second * waitBlockTime)
 				continue
 			}
-			color, err := qs.rpc.IsBlue(block.Hash)
-			if err != nil {
-				log.Debugf("Request block %d isBlue failed! %s", start, err.Error())
-				time.Sleep(time.Second * waitBlockTime)
-				continue
-			}
-			block.IsBlue = color
 			start++
 			qs.blockCh <- block
 		}
@@ -283,7 +276,7 @@ func (qs *QitmeerSync) saveBlock(group *sync.WaitGroup) {
 		select {
 		case block := <-qs.blockCh:
 			if err := qs.storage.SaveBlock(block); err != nil {
-				log.Mailf(config.Setting.Email.Title, "Failed to save block %d %s, err:%v", block.Order, block.Hash, err)
+				log.Mailf(config.Setting.Email.Title, "Failed to save block %d %s, err:%s", block.Order, block.Hash, err.Error())
 				qs.reBlockSync <- struct{}{}
 				return
 			}
@@ -294,7 +287,7 @@ func (qs *QitmeerSync) saveBlock(group *sync.WaitGroup) {
 				qs.verifyFiledCount++
 				// 由于交易池中的交易会造成暂时的验证失败，所以当多次一直验证失败，才发送邮件
 				if qs.verifyFiledCount >= 10 {
-					log.Mailf(config.Setting.Email.Title, "Failed to verify block %d 10 times %s, err:%v", block.Order, block.Hash, err)
+					log.Mailf(config.Setting.Email.Title, "Failed to verify block %d 10 times %s, err:%s", block.Order, block.Hash, err.Error())
 					qs.verifyFiledCount = 0
 				}
 			}
@@ -308,10 +301,9 @@ func (qs *QitmeerSync) saveBlock(group *sync.WaitGroup) {
 func (qs *QitmeerSync) requestUnconfirmedBlock(group *sync.WaitGroup) {
 	defer group.Done()
 
-	unOrder := qs.storage.LastUnconfirmedOrder()
-	if unOrder != 0 {
-		order := qs.storage.LastOrder()
-		for ; unOrder <= order; unOrder++ {
+	ids := qs.storage.UnconfirmedIds()
+	for _, id := range ids {
+		if id != 0 {
 			select {
 			case <-qs.reUncfmBlockSync:
 				log.Info("Stop and restart request unconfirmed block")
@@ -320,19 +312,12 @@ func (qs *QitmeerSync) requestUnconfirmedBlock(group *sync.WaitGroup) {
 				log.Info("Shutdown request unconfirmed block")
 				return
 			default:
-				block, err := qs.rpc.GetBlock(unOrder)
+				block, err := qs.getBlockById(id)
 				if err != nil {
-					log.Debugf("Request block %d failed! %s", unOrder, err.Error())
+					log.Debugf("Request block id %d failed! %s", id, err.Error())
 					time.Sleep(time.Second * waitBlockTime)
 					continue
 				}
-				color, err := qs.rpc.IsBlue(block.Hash)
-				if err != nil {
-					log.Debugf("Request block isBlue %d failed! %s", unOrder, err.Error())
-					time.Sleep(time.Second * waitBlockTime)
-					continue
-				}
-				block.IsBlue = color
 				qs.uncfmBlockCh <- block
 			}
 		}
@@ -343,7 +328,13 @@ func (qs *QitmeerSync) requestUnconfirmedBlock(group *sync.WaitGroup) {
 func (qs *QitmeerSync) saveUnconfirmedBlock(group *sync.WaitGroup) {
 	defer group.Done()
 
+	var isSaveEnd bool
 	for {
+		if isSaveEnd && len(qs.uncfmBlockCh) == 0 {
+			log.Info("Shutdown save unconfirmed block")
+			return
+		}
+
 		select {
 		case block := <-qs.uncfmBlockCh:
 			if err := qs.storage.SaveBlock(block); err != nil {
@@ -353,8 +344,7 @@ func (qs *QitmeerSync) saveUnconfirmedBlock(group *sync.WaitGroup) {
 			}
 			log.Infof("Save unconfirmed block %d", block.Order)
 		case <-qs.reUncfmBlockSync:
-			log.Info("Stop and restart save unconfirmed block")
-			return
+			isSaveEnd = true
 		case <-qs.interupt:
 			log.Info("Shutdown save unconfirmed block")
 			return
@@ -365,6 +355,7 @@ func (qs *QitmeerSync) saveUnconfirmedBlock(group *sync.WaitGroup) {
 func (qs *QitmeerSync) requestUnconfirmedTransaction(group *sync.WaitGroup) {
 	defer group.Done()
 
+	blockMap := map[string]bool{}
 	txs := qs.storage.QueryUnconfirmedTranslateTransaction()
 	for _, tx := range txs {
 		select {
@@ -382,23 +373,17 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction(group *sync.WaitGroup) {
 				continue
 			}
 			if rpcTx.BlockHash != "" {
-				block, err := qs.rpc.GetBlockByHash(rpcTx.BlockHash)
-				if err != nil {
-					log.Debugf("Request getBlock %d rpc failed! err:%v", tx.BlockOrder, err)
-					time.Sleep(time.Second * waitBlockTime)
+				_, ok := blockMap[rpcTx.BlockHash]
+				if ok {
 					continue
 				}
-				color, err := qs.rpc.IsBlue(rpcTx.BlockHash)
+				blockMap[rpcTx.BlockHash] = true
+				block, err := qs.getBlockByHash(rpcTx.BlockHash)
 				if err != nil {
-					log.Debugf("Request block isBlue %d failed! %s", rpcTx.BlockOrder, err.Error())
-					time.Sleep(time.Second * waitBlockTime)
 					continue
 				}
-				// 重新更新整个块而不是单个交易，以免verify block 失败
-				if block.Order < qs.storage.LastOrder() {
-					block.IsBlue = color
-					qs.uncfmTxBlockCh <- block
-				}
+
+				qs.uncfmTxBlockCh <- block
 			}
 		}
 	}
@@ -408,7 +393,12 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction(group *sync.WaitGroup) {
 func (qs *QitmeerSync) saveUnconfirmedTransaction(group *sync.WaitGroup) {
 	defer group.Done()
 
+	var isSaveEnd bool
 	for {
+		if isSaveEnd && len(qs.uncfmTxBlockCh) == 0 {
+			log.Info("Shutdown save unconfirmed transaction")
+			return
+		}
 		select {
 		case block := <-qs.uncfmTxBlockCh:
 			if err := qs.storage.SaveBlock(block); err != nil {
@@ -417,8 +407,7 @@ func (qs *QitmeerSync) saveUnconfirmedTransaction(group *sync.WaitGroup) {
 				return
 			}
 		case <-qs.reUncfmTxSync:
-			log.Info("Stop and restart save unconfirmed transaction")
-			return
+			isSaveEnd = true
 		case <-qs.interupt:
 			log.Info("Shutdown save unconfirmed transaction")
 			return
@@ -437,14 +426,14 @@ func (qs *QitmeerSync) initUncfmBlockCh() {
 	if qs.uncfmBlockCh != nil {
 		close(qs.uncfmBlockCh)
 	}
-	qs.uncfmBlockCh = make(chan *rpc.Block, 100)
+	qs.uncfmBlockCh = make(chan *rpc.Block, 1000)
 }
 
 func (qs *QitmeerSync) initUncfmTransactionCh() {
 	if qs.uncfmTxBlockCh != nil {
 		close(qs.uncfmTxBlockCh)
 	}
-	qs.uncfmTxBlockCh = make(chan *rpc.Block, 100)
+	qs.uncfmTxBlockCh = make(chan *rpc.Block, 1000)
 }
 
 func isExist(err error) bool {
@@ -452,4 +441,31 @@ func isExist(err error) bool {
 		return true
 	}
 	return false
+}
+
+func (qs *QitmeerSync) getBlockById(id uint64) (*rpc.Block, error) {
+	block, err := qs.rpc.GetBlockById(id)
+	if err != nil {
+		return nil, err
+	}
+	color, err := qs.rpc.IsBlue(block.Hash)
+	if err != nil {
+		return nil, err
+	}
+	block.IsBlue = color
+	block.Id = id
+	return block, err
+}
+
+func (qs *QitmeerSync) getBlockByHash(hash string) (*rpc.Block, error) {
+	block, err := qs.rpc.GetBlockByHash(hash)
+	if err != nil {
+		return nil, err
+	}
+	color, err := qs.rpc.IsBlue(block.Hash)
+	if err != nil {
+		return nil, err
+	}
+	block.IsBlue = color
+	return block, err
 }

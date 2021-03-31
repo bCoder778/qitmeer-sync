@@ -28,6 +28,7 @@ type IUpdate interface {
 
 type IGet interface {
 	GetLastOrder() (uint64, error)
+	GetLastId() (uint64, error)
 	GetLastUnconfirmedOrder() (uint64, error)
 	GetTransaction(txId string, blockHash string) (*types.Transaction, error)
 	GetVout(txId string, vout int) (*types.Vout, error)
@@ -40,6 +41,7 @@ type IQuery interface {
 	QueryUnconfirmedTranslateTransaction() ([]types.Transaction, error)
 	QueryMemTransaction() ([]types.Transaction, error)
 	QueryUnConfirmedOrders() ([]uint64, error)
+	QueryUnConfirmedIds() ([]uint64, error)
 	QueryTransactions(txId string) ([]types.Transaction, error)
 }
 

@@ -5,7 +5,7 @@ import (
 )
 
 type Block struct {
-	Id            uint64         `xorm:"bigint pk autoincr" json:"id"`
+	Id            uint64         `xorm:"bigint pk" json:"id"`
 	Hash          string         `xorm:"varchar(64) index" json:"hash"`
 	Txvalid       bool           `xorm:"bool" json:"txvalid"`
 	Confirmations uint64         `xorm:"bigint" json:"confirmation"`

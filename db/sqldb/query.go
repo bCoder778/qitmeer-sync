@@ -11,6 +11,12 @@ func (d *DB) QueryUnConfirmedOrders() ([]uint64, error) {
 	return orders, err
 }
 
+func (d *DB) QueryUnConfirmedIds() ([]uint64, error) {
+	ids := []uint64{}
+	err := d.engine.Table(new(types.Block)).Where("stat = ?", stat.Block_Unconfirmed).Cols("id").Find(&ids)
+	return ids, err
+}
+
 func (d *DB) QueryUnconfirmedTranslateTransaction() ([]types.Transaction, error) {
 	txs := []types.Transaction{}
 	err := d.engine.Where("is_coinbase = ?", 0).And("stat = ? or stat = ?", stat.TX_Unconfirmed, stat.TX_Memry).Find(&txs)

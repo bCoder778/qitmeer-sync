@@ -299,8 +299,8 @@ func updateTransfers(sess *xorm.Session, transfers []*types.Transfer) error {
 
 func updateBlock(sess *xorm.Session, block *types.Block) error {
 	// 更新block
-	queryBlock := &types.Block{Hash: block.Hash}
-	if ok, err := sess.Exist(queryBlock); err != nil {
+	queryBlock := &types.Block{}
+	if ok, err := sess.Where("hash = ?", block.Hash).Get(queryBlock); err != nil {
 		return fmt.Errorf("faild to seesion exist block, %s", err.Error())
 	} else if ok {
 		if _, err := sess.Where("hash = ?", block.Hash).

@@ -18,7 +18,9 @@ type IStorage interface {
 
 type ISyncInfo interface {
 	LastOrder() uint64
+	LastId() uint64
 	UnconfirmedOrders() []uint64
+	UnconfirmedIds() []uint64
 	LastUnconfirmedOrder() uint64
 }
 
