@@ -23,7 +23,8 @@ func ConnectMysql(conf *config.DB) (*DB, error) {
 	engine, err := xorm.NewEngine("mysql", path)
 	if err != nil {
 		return nil, err
-	} //engine.ShowSQL(true)
+	}
+	//engine.ShowSQL(true)
 
 	if err = engine.Sync2(
 		new(types.Block),
@@ -284,7 +285,7 @@ func updateTransfers(sess *xorm.Session, transfers []*types.Transfer) error {
 		} else if ok {
 			if queryTransfer.Stat != stat.TX_Confirmed {
 				if _, err := sess.Where("tx_id = ? and address = ? and coin_id = ?", tras.TxId, tras.Address, tras.CoinId).
-					Cols(`confirmations`, `txsvaild`, `stat`).Update(tras); err != nil {
+					Cols(`change`, `fees`, `confirmations`, `txsvaild`, `stat`).Update(tras); err != nil {
 					return err
 				}
 			}

@@ -130,57 +130,56 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 		addressInOut := NewAddressInOutMap()
 		status := s.verify.TransactionStat(&rpcTx, color)
 		var totalVin, totalVout, fees uint64
-		if order != 0 {
-			for index, vin := range rpcTx.Vin {
-				var (
-					address string
-					amount  uint64
-				)
-				if vin.Coinbase != "" {
-					address = "coinbase"
-				} else {
-					vout, err := s.db.GetVout(vin.Txid, vin.Vout)
-					if err != nil {
+		for index, vin := range rpcTx.Vin {
+			var (
+				address string
+				amount  uint64
+			)
+			if vin.Coinbase != "" {
+				address = "coinbase"
+			} else {
+				vout, err := s.db.GetVout(vin.Txid, vin.Vout)
+				if err != nil {
+					return nil, fmt.Errorf("query txid %s, vout=%d failed!", vin.Txid, vin.Vout)
+				}
+
+				// 可能引用同一区块vout
+				if vout.TxId == "" {
+					if vout, err = s.finVout(vin.Txid, vin.Vout, vouts); err != nil {
 						return nil, fmt.Errorf("query txid %s, vout=%d failed!", vin.Txid, vin.Vout)
 					}
-					// 可能引用同一区块vout
-					if vout.TxId == "" {
-						if vout, err = s.finVout(vin.Txid, vin.Vout, vouts); err != nil {
-							return nil, fmt.Errorf("query txid %s, vout=%d failed!", vin.Txid, vin.Vout)
-						}
-					}
-
-					// 添加需要更新的被花费vout
-					if status != stat.TX_Failed {
-						vout.SpentTx = rpcTx.Txid
-						spentedVouts = append(spentedVouts, vout)
-					}
-
-					// 添加新的vin
-					address = vout.Address
-					amount = vout.Amount
-					totalVin += amount
-					addressInOut.AddAddressIn(address, vout.CoinId, int64(amount))
-					newVin := &types.Vin{
-						TxId:      rpcTx.Txid,
-						SpentedTx: vout.TxId,
-						Order:     order,
-						Address:   address,
-						Vout:      vin.Vout,
-						CoinId:    vout.CoinId,
-						Amount:    amount,
-						Number:    index,
-						Sequence:  vin.Sequence,
-						ScriptSig: &types.ScriptSig{
-							Hex: vin.ScriptSig.Hex,
-							Asm: vin.ScriptSig.Asm,
-						},
-						Confirmations: rpcTx.Confirmations,
-						Stat:          status,
-						Timestamp:     rpcTx.Timestamp.Unix(),
-					}
-					vins = append(vins, newVin)
 				}
+				// 添加需要更新的被花费vout
+				if status != stat.TX_Failed {
+					vout.SpentTx = rpcTx.Txid
+					spentedVouts = append(spentedVouts, vout)
+				}
+
+				// 添加新的vin
+				address = vout.Address
+				amount = vout.Amount
+				totalVin += amount
+				//fmt.Printf("address %s vin %d\n", address, amount)
+				addressInOut.AddAddressIn(address, vout.CoinId, int64(amount))
+				newVin := &types.Vin{
+					TxId:      rpcTx.Txid,
+					SpentedTx: vout.TxId,
+					Order:     order,
+					Address:   address,
+					Vout:      vin.Vout,
+					CoinId:    vout.CoinId,
+					Amount:    amount,
+					Number:    index,
+					Sequence:  vin.Sequence,
+					ScriptSig: &types.ScriptSig{
+						Hex: vin.ScriptSig.Hex,
+						Asm: vin.ScriptSig.Asm,
+					},
+					Confirmations: rpcTx.Confirmations,
+					Stat:          status,
+					Timestamp:     rpcTx.Timestamp.Unix(),
+				}
+				vins = append(vins, newVin)
 			}
 		}
 
@@ -210,6 +209,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 			}
 			totalVout += vout.Amount
 			vouts = append(vouts, newVout)
+			//fmt.Printf("address %s vout %d\n", newVout.Address, int64(newVout.Amount))
 			addressInOut.AddAddressOut(newVout.Address, vout.CoinID, int64(newVout.Amount))
 		}
 		if totalVin > totalVout {
@@ -237,7 +237,9 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 		txs = append(txs, tx)
 
 		// 创建地址交易信息
+
 		addrChanges := addressInOut.AddressChange()
+
 		for _, change := range addrChanges {
 			transfers = append(transfers, &types.Transfer{
 				TxId:          tx.TxId,
