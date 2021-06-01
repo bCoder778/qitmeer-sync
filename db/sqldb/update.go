@@ -308,7 +308,7 @@ func updateBlock(sess *xorm.Session, block *types.Block) error {
 			Cols(`txvalid`, `confirmations`, `version`, `weight`, `height`, `tx_root`, `order`,
 				`transactions`, `state_root`, `bits`, `timestamp`, `parent_root`, `parents`, `children`,
 				`difficulty`, `pow_name`, `pow_type`, `nonce`, `edge_bits`, `circle_nonces`, `address`,
-				`amount`, `stat`).Update(block); err != nil {
+				`amount`, `color`, `stat`).Update(block); err != nil {
 			return err
 		}
 

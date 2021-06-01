@@ -29,6 +29,7 @@ type Block struct {
 	CircleNonces  string         `xorm:"Text" json:"circlenonces"`
 	Address       string         `xorm:"varchar(40)" json:"address"`
 	Amount        uint64         `xorm:"bigint" json:"amount"`
+	Color         stat.Color     `xorm:"int" json:"color"`
 	Stat          stat.BlockStat `xorm:"int" json:"stat"`
 }
 

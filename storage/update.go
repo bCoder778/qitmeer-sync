@@ -104,6 +104,7 @@ func (s *Storage) crateBlock(rpcBlock *rpc.Block) *types.Block {
 		Timestamp:     rpcBlock.Timestamp.Unix(),
 		ParentRoot:    rpcBlock.ParentRoot,
 		Stat:          s.verify.BlockStat(rpcBlock),
+		Color:         stat.Color(rpcBlock.IsBlue),
 		Parents:       rpcBlock.Parents,
 		Children:      rpcBlock.Children,
 		Difficulty:    rpcBlock.Difficulty,
