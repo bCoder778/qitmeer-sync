@@ -98,7 +98,7 @@ type Vout struct {
 	Timestamp     int64         `xorm:"bigint" json:"timestamp"`
 	Address       string        `xorm:"varchar(35) index" json:"address"`
 	Amount        uint64        `xorm:"bigint" json:"amount"`
-	CoinId        string        `xorm:"varchar(5)" json:"conid"`
+	CoinId        string        `xorm:"varchar(30)" json:"coinid"`
 	ScriptPubKey  *ScriptPubKey `xorm:"json" json:"scriptpubkey"`
 	SpentTx       string        `xorm:"varchar(64)" json:"spenttx"`
 	Confirmations uint64        `xorm:"bigint" json:"confirmations"`
