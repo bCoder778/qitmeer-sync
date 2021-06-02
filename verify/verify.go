@@ -33,6 +33,12 @@ func NewQitmeerVerfiy(conf *config.Verify, db db.IDB) *QitmeerVerify {
 	return &QitmeerVerify{conf: conf, db: db, params: &para}
 }
 
+
+func (qv *QitmeerVerify) Set10GenesisUTXO(coinMap map[string]uint64){
+	qv.params.GenesisUTXO = coinMap
+}
+
+
 func (qv *QitmeerVerify) BlockStat(block *rpc.Block) stat.BlockStat {
 	if block.Confirmations <= stat.Block_Confirmed_Value {
 		return stat.Block_Unconfirmed

@@ -63,7 +63,7 @@ type Transfer struct {
 	Id            uint64      `xorm:"bigint autoincr pk" json:"id"`
 	TxId          string      `xorm:"varchar(64) index" json:"txid"`
 	Address       string      `xorm:"varchar(35) index" json:"address"`
-	CoinId        string      `xorm:"varchar(5) index" json:"conid"`
+	CoinId        string      `xorm:"varchar(30) index" json:"conid"`
 	Confirmations uint64      `xorm:"bigint" json:"confirmations"`
 	Txsvaild      bool        `xorm:"bool" json:"txsvaild"`
 	IsCoinbase    bool        `xorm:"bool " json:"iscoinbase"`

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"github.com/bCoder778/qitmeer-sync/config"
 	"github.com/bCoder778/qitmeer-sync/rpc"
 	"github.com/bCoder778/qitmeer-sync/storage/types"
 	"github.com/bCoder778/qitmeer-sync/verify"
@@ -22,10 +23,15 @@ type transactionData struct {
 }
 
 func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
+
 	block := s.crateBlock(rpcBlock)
 	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.IsBlue)
 	if err != nil {
 		return err
+	}
+	if config.Setting.Verify.Version == "0.10" && rpcBlock.Order == 0 && rpcBlock.Height == 0{
+		coinMap := parseVoutCoinAmount(txData.Vouts)
+		s.verify.Set10GenesisUTXO(coinMap)
 	}
 
 	s.mutex.Lock()
@@ -347,4 +353,16 @@ func (a *AddressInOutMap) AddressChange() []*AddressChange {
 		})
 	}
 	return addrChanges
+}
+
+func parseVoutCoinAmount(vouts []*types.Vout)map[string]uint64{
+	coinMap := map[string]uint64{}
+	for _, vout := range vouts{
+		if _, ok :=  coinMap[vout.CoinId];ok{
+			coinMap[vout.CoinId] += vout.Amount
+		}else{
+			coinMap[vout.CoinId] = vout.Amount
+		}
+	}
+	return coinMap
 }

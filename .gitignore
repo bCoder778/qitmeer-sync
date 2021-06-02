@@ -3,3 +3,6 @@ qitmeer-sync
 config.toml
 logs
 
+.idea/vcs.xml
+.idea/qitmeer-sync.iml
+.idea/modules.xml
