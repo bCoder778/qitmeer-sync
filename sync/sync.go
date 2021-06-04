@@ -366,6 +366,7 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction(group *sync.WaitGroup) {
 			log.Info("Shutdown request unconfirmed transaction")
 			return
 		default:
+			log.Infof("Get unconfirmed transaction %s", tx.TxId)
 			rpcTx, err := qs.rpc.GetTransaction(tx.TxId)
 			if err != nil {
 				log.Debugf("Request getTransaction %d rpc failed! err:%v", tx.BlockOrder, err)
@@ -401,6 +402,7 @@ func (qs *QitmeerSync) saveUnconfirmedTransaction(group *sync.WaitGroup) {
 		}
 		select {
 		case block := <-qs.uncfmTxBlockCh:
+			log.Infof("Save unconfirmed transaction in block %d %s", block.Order, block.Hash)
 			if err := qs.storage.SaveBlock(block); err != nil {
 				log.Mailf(config.Setting.Email.Title, "Failed to save unconfirmed transaction block %d, err:%v", block.Order, err)
 				qs.reUncfmTxSync <- struct{}{}
