@@ -367,19 +367,26 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction(group *sync.WaitGroup) {
 			return
 		default:
 			log.Infof("Get unconfirmed transaction %s", tx.TxId)
-			rpcTx, err := qs.rpc.GetTransaction(tx.TxId)
-			if err != nil {
-				log.Debugf("Request getTransaction %d rpc failed! err:%v", tx.BlockOrder, err)
-				time.Sleep(time.Second * waitBlockTime)
-				continue
+			var blockHash string
+			if tx.Duplicate {
+				blockHash = tx.BlockHash
+			} else {
+				rpcTx, err := qs.rpc.GetTransaction(tx.TxId)
+				if err != nil {
+					log.Debugf("Request getTransaction %d rpc failed! err:%v", tx.BlockOrder, err)
+					time.Sleep(time.Second * waitBlockTime)
+					continue
+				}
+				blockHash = rpcTx.BlockHash
 			}
-			if rpcTx.BlockHash != "" {
-				_, ok := blockMap[rpcTx.BlockHash]
+
+			if blockHash != "" {
+				_, ok := blockMap[blockHash]
 				if ok {
 					continue
 				}
-				blockMap[rpcTx.BlockHash] = true
-				block, err := qs.getBlockByHash(rpcTx.BlockHash)
+				blockMap[blockHash] = true
+				block, err := qs.getBlockByHash(blockHash)
 				if err != nil {
 					continue
 				}
