@@ -190,10 +190,11 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 				vins = append(vins, newVin)
 			}
 		}
-		var lock uint64
+
 		var err error
 		// 添加新的vout
 		for index, vout := range rpcTx.Vout {
+			var lock uint64
 			switch vout.ScriptPubKey.Type {
 			case "pubkeyhash":
 
