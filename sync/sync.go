@@ -406,6 +406,7 @@ func (qs *QitmeerSync) saveUnconfirmedTransaction(group *sync.WaitGroup) {
 				qs.reUncfmTxSync <- struct{}{}
 				return
 			}
+			log.Infof("Save unconfirmed transaction block %d", block.Order)
 		case <-qs.reUncfmTxSync:
 			isSaveEnd = true
 		case <-qs.interupt:

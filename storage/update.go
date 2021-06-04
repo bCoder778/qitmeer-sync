@@ -5,8 +5,10 @@ import (
 	"github.com/bCoder778/qitmeer-sync/config"
 	"github.com/bCoder778/qitmeer-sync/rpc"
 	"github.com/bCoder778/qitmeer-sync/storage/types"
+	"github.com/bCoder778/qitmeer-sync/utils"
 	"github.com/bCoder778/qitmeer-sync/verify"
 	"github.com/bCoder778/qitmeer-sync/verify/stat"
+	"strings"
 )
 
 type blockData struct {
@@ -23,13 +25,12 @@ type transactionData struct {
 }
 
 func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
-
 	block := s.crateBlock(rpcBlock)
 	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.IsBlue)
 	if err != nil {
 		return err
 	}
-	if config.Setting.Verify.Version == "0.10" && rpcBlock.Order == 0 && rpcBlock.Height == 0{
+	if config.Setting.Verify.Version == "0.10" && rpcBlock.Order == 0 && rpcBlock.Height == 0 {
 		coinMap := parseVoutCoinAmount(txData.Vouts)
 		s.verify.Set10GenesisUTXO(coinMap)
 	}
@@ -189,9 +190,26 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 				vins = append(vins, newVin)
 			}
 		}
-
+		var lock uint64
+		var err error
 		// 添加新的vout
 		for index, vout := range rpcTx.Vout {
+			switch vout.ScriptPubKey.Type {
+			case "pubkeyhash":
+
+			case "cltvpubkeyhash":
+				codes := strings.Split(vout.ScriptPubKey.Asm, " ")
+				if len(codes) == 0 {
+					return nil, fmt.Errorf("cltvpubkeyhash vout error,  %s", vout.ScriptPubKey.Asm)
+				}
+				lock, err = utils.LittleHexToUint64(codes[0])
+				if err != nil {
+					return nil, fmt.Errorf("little hex %s to uint64 error, %s", codes[0], err.Error())
+				}
+			default:
+				continue
+			}
+
 			if vout.CoinID == "" {
 				// 0.9的网络
 				vout.CoinID = verify.PMEERID
@@ -213,6 +231,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 				Confirmations: rpcTx.Confirmations,
 				Stat:          status,
 				Timestamp:     rpcTx.Timestamp.Unix(),
+				Lock:          lock,
 			}
 			totalVout += vout.Amount
 			vouts = append(vouts, newVout)
@@ -355,12 +374,12 @@ func (a *AddressInOutMap) AddressChange() []*AddressChange {
 	return addrChanges
 }
 
-func parseVoutCoinAmount(vouts []*types.Vout)map[string]uint64{
+func parseVoutCoinAmount(vouts []*types.Vout) map[string]uint64 {
 	coinMap := map[string]uint64{}
-	for _, vout := range vouts{
-		if _, ok :=  coinMap[vout.CoinId];ok{
+	for _, vout := range vouts {
+		if _, ok := coinMap[vout.CoinId]; ok {
 			coinMap[vout.CoinId] += vout.Amount
-		}else{
+		} else {
 			coinMap[vout.CoinId] = vout.Amount
 		}
 	}

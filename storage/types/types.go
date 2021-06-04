@@ -87,7 +87,7 @@ type Vin struct {
 	Confirmations uint64      `xorm:"bigint" json:"confirmations"`
 	Sequence      uint64      `xorm:"bigint" json:"sequence"`
 	ScriptSig     *ScriptSig  `xorm:"json" json:"scriptsig"`
-	Stat          stat.TxStat `xorm:"stat" json:"stat"`
+	Stat          stat.TxStat `xorm:"int" json:"stat"`
 }
 
 type Vout struct {
@@ -102,7 +102,8 @@ type Vout struct {
 	ScriptPubKey  *ScriptPubKey `xorm:"json" json:"scriptpubkey"`
 	SpentTx       string        `xorm:"varchar(64)" json:"spenttx"`
 	Confirmations uint64        `xorm:"bigint" json:"confirmations"`
-	Stat          stat.TxStat   `xorm:"stat" json:"stat"`
+	Stat          stat.TxStat   `xorm:"int" json:"stat"`
+	Lock          uint64        `xorm:"bigint" json:"lock"`
 }
 
 type ScriptPubKey struct {
