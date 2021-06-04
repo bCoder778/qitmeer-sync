@@ -19,7 +19,7 @@ func (d *DB) QueryUnConfirmedIds() ([]uint64, error) {
 
 func (d *DB) QueryUnconfirmedTranslateTransaction() ([]types.Transaction, error) {
 	txs := []types.Transaction{}
-	err := d.engine.Where("is_coinbase = ?", 0).And("stat = ? or stat = ?", stat.TX_Unconfirmed, stat.TX_Memry).Find(&txs)
+	err := d.engine.Where("is_coinbase = ? and duplicate = ?", 0, 0).And("stat = ? or stat = ?", stat.TX_Unconfirmed, stat.TX_Memry).Find(&txs)
 	return txs, err
 }
 
