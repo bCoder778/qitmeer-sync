@@ -415,7 +415,9 @@ func (qs *QitmeerSync) saveUnconfirmedTransaction(group *sync.WaitGroup) {
 			log.Infof("Save unconfirmed transaction in block %d %s", block.Order, block.Hash)
 			if err := qs.storage.SaveBlock(block); err != nil {
 				log.Mailf(config.Setting.Email.Title, "Failed to save unconfirmed transaction block %d, err:%v", block.Order, err)
-				qs.reUncfmTxSync <- struct{}{}
+				if len(qs.reUncfmTxSync) == 0 {
+					qs.reUncfmTxSync <- struct{}{}
+				}
 				return
 			}
 			log.Infof("Save unconfirmed transaction block %d", block.Order)

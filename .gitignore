@@ -7,3 +7,4 @@ logs
 .idea/qitmeer-sync.iml
 .idea/modules.xml
 .idea/watcherTasks.xml
+.DS_Store
