@@ -198,7 +198,7 @@ func updateVins(sess *xorm.Session, vins []*types.Vin) error {
 			}
 		} else {
 			if _, err := sess.Insert(vin); err != nil {
-				return err
+				return fmt.Errorf("insert block vin, %s", err)
 			}
 		}
 	}
@@ -231,7 +231,7 @@ func updateVouts(sess *xorm.Session, vouts []*types.Vout) error {
 			}
 		} else {
 			if _, err := sess.Insert(vout); err != nil {
-				return err
+				return fmt.Errorf("insert block vout, %s", err)
 			}
 		}
 	}
@@ -268,7 +268,7 @@ func updateTransactions(sess *xorm.Session, txs []*types.Transaction) error {
 
 		} else {
 			if _, err := sess.Insert(tx); err != nil {
-				return err
+				return fmt.Errorf("insert transction %s error, %s", tx.TxId, err)
 			}
 		}
 
@@ -291,7 +291,7 @@ func updateTransfers(sess *xorm.Session, transfers []*types.Transfer) error {
 			}
 		} else {
 			if _, err := sess.Insert(tras); err != nil {
-				return err
+				return fmt.Errorf("insert transfer  error, %s", err)
 			}
 		}
 	}
@@ -314,7 +314,7 @@ func updateBlock(sess *xorm.Session, block *types.Block) error {
 
 	} else {
 		if _, err := sess.Insert(block); err != nil {
-			return err
+			return fmt.Errorf("insert block error, %s", err)
 		}
 	}
 	return nil
