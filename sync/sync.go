@@ -152,6 +152,7 @@ func (qs *QitmeerSync) updateUnconfirmedTransaction() {
 			go qs.saveUnconfirmedTransaction(&wg)
 
 			wg.Wait()
+			log.Info("Wait update unconfirmed end")
 		case <-qs.interupt:
 			log.Info("Shutdown update unconfirmed transaction")
 			return
@@ -395,7 +396,9 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction(group *sync.WaitGroup) {
 			}
 		}
 	}
+	log.Info("Write reUncfmTxSync")
 	qs.reUncfmTxSync <- struct{}{}
+	log.Info("Write reUncfmTxSync end")
 }
 
 func (qs *QitmeerSync) saveUnconfirmedTransaction(group *sync.WaitGroup) {
@@ -417,6 +420,7 @@ func (qs *QitmeerSync) saveUnconfirmedTransaction(group *sync.WaitGroup) {
 			}
 			log.Infof("Save unconfirmed transaction block %d", block.Order)
 		case <-qs.reUncfmTxSync:
+			log.Info("Read reUncfmTxSync")
 			isSaveEnd = true
 		case <-qs.interupt:
 			log.Info("Shutdown save unconfirmed transaction")
@@ -436,14 +440,22 @@ func (qs *QitmeerSync) initUncfmBlockCh() {
 	if qs.uncfmBlockCh != nil {
 		close(qs.uncfmBlockCh)
 	}
+	if qs.reUncfmBlockSync != nil {
+		close(qs.reUncfmBlockSync)
+	}
 	qs.uncfmBlockCh = make(chan *rpc.Block, 1000)
+	qs.reUncfmBlockSync = make(chan struct{}, 1)
 }
 
 func (qs *QitmeerSync) initUncfmTransactionCh() {
 	if qs.uncfmTxBlockCh != nil {
 		close(qs.uncfmTxBlockCh)
 	}
+	if qs.reUncfmTxSync != nil {
+		close(qs.reUncfmTxSync)
+	}
 	qs.uncfmTxBlockCh = make(chan *rpc.Block, 1000)
+	qs.reUncfmTxSync = make(chan struct{}, 1)
 }
 
 func isExist(err error) bool {
