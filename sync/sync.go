@@ -340,7 +340,9 @@ func (qs *QitmeerSync) saveUnconfirmedBlock(group *sync.WaitGroup) {
 		case block := <-qs.uncfmBlockCh:
 			if err := qs.storage.SaveBlock(block); err != nil {
 				log.Mailf(config.Setting.Email.Title, "Failed to save unconfirmed block %d %s, err:%v", block.Order, block.Hash, err)
-				qs.reUncfmBlockSync <- struct{}{}
+				if len(qs.reUncfmBlockSync) == 0 {
+					qs.reUncfmBlockSync <- struct{}{}
+				}
 				return
 			}
 			log.Infof("Save unconfirmed block %d", block.Order)
