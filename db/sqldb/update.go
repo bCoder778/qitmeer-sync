@@ -313,6 +313,10 @@ func updateBlock(sess *xorm.Session, block *types.Block) error {
 		}
 
 	} else {
+		// 更细为确认交易，无法获取blockID，会导致插入报错
+		if block.Id == 0 && block.Height != 0 {
+			return nil
+		}
 		if _, err := sess.Insert(block); err != nil {
 			return fmt.Errorf("insert block error, %s", err)
 		}

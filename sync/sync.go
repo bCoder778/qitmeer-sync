@@ -23,8 +23,6 @@ type QitmeerSync struct {
 	rpc              *rpc.Client
 	mutex            sync.RWMutex
 	reBlockSync      chan struct{}
-	reUncfmBlockSync chan struct{}
-	reUncfmTxSync    chan struct{}
 	blockCh          chan *rpc.Block
 	uncfmBlockCh     chan *rpc.Block
 	uncfmTxBlockCh   chan *rpc.Block
@@ -40,13 +38,11 @@ func NewQitmeerSync() (*QitmeerSync, error) {
 	}
 	ve := verify.NewQitmeerVerfiy(config.Setting.Verify, db)
 	return &QitmeerSync{
-		storage:          storage.NewStorage(db, ve),
-		rpc:              rpc.NewClient(config.Setting.Rpc),
-		reBlockSync:      make(chan struct{}, 1),
-		reUncfmBlockSync: make(chan struct{}, 1),
-		reUncfmTxSync:    make(chan struct{}, 1),
-		interupt:         make(chan struct{}, 1),
-		wg:               sync.WaitGroup{},
+		storage:     storage.NewStorage(db, ve),
+		rpc:         rpc.NewClient(config.Setting.Rpc),
+		reBlockSync: make(chan struct{}, 1),
+		interupt:    make(chan struct{}, 1),
+		wg:          sync.WaitGroup{},
 	}, nil
 }
 
@@ -103,32 +99,24 @@ func (qs *QitmeerSync) syncBlock() {
 }
 
 func (qs *QitmeerSync) updateUnconfirmedBlock() {
-	ticker := time.NewTicker(time.Second * 60 * 5)
+	ticker := time.NewTicker(time.Second * 5)
 	defer func() {
 		ticker.Stop()
 		qs.wg.Done()
 	}()
+	qs.initUncfmBlockCh()
+	go qs.saveUnconfirmedBlock()
 
-	wg := sync.WaitGroup{}
 	for {
 		select {
 		case <-ticker.C:
-			log.Info("Start sync unconfirmed block")
-			qs.initUncfmBlockCh()
-
-			wg.Add(1)
-			go qs.requestUnconfirmedBlock(&wg)
-
-			wg.Add(1)
-			go qs.saveUnconfirmedBlock(&wg)
-
-			wg.Wait()
+			log.Info("Start request unconfirmed block")
+			qs.requestUnconfirmedBlock()
 		case <-qs.interupt:
 			log.Info("Shutdown update unconfirmed block")
 			return
 		}
 	}
-
 }
 
 func (qs *QitmeerSync) updateUnconfirmedTransaction() {
@@ -137,22 +125,14 @@ func (qs *QitmeerSync) updateUnconfirmedTransaction() {
 		ticker.Stop()
 		qs.wg.Done()
 	}()
+	qs.initUncfmTransactionCh()
+	go qs.saveUnconfirmedTransaction()
 
-	wg := sync.WaitGroup{}
 	for {
 		select {
 		case <-ticker.C:
-			log.Info("Start sync unconfirmed transaction")
-			qs.initUncfmTransactionCh()
-
-			wg.Add(1)
-			go qs.requestUnconfirmedTransaction(&wg)
-
-			wg.Add(1)
-			go qs.saveUnconfirmedTransaction(&wg)
-
-			wg.Wait()
-			log.Info("Wait update unconfirmed end")
+			log.Info("Start request unconfirmed transaction")
+			qs.requestUnconfirmedTransaction()
 		case <-qs.interupt:
 			log.Info("Shutdown update unconfirmed transaction")
 			return
@@ -299,16 +279,11 @@ func (qs *QitmeerSync) saveBlock(group *sync.WaitGroup) {
 	}
 }
 
-func (qs *QitmeerSync) requestUnconfirmedBlock(group *sync.WaitGroup) {
-	defer group.Done()
-
+func (qs *QitmeerSync) requestUnconfirmedBlock() {
 	ids := qs.storage.UnconfirmedIds()
 	for _, id := range ids {
 		if id != 0 {
 			select {
-			case <-qs.reUncfmBlockSync:
-				log.Info("Stop and restart request unconfirmed block")
-				return
 			case <-qs.interupt:
 				log.Info("Shutdown request unconfirmed block")
 				return
@@ -323,48 +298,31 @@ func (qs *QitmeerSync) requestUnconfirmedBlock(group *sync.WaitGroup) {
 			}
 		}
 	}
-	qs.reUncfmBlockSync <- struct{}{}
+	log.Infof("Request unconfirmed block end")
 }
 
-func (qs *QitmeerSync) saveUnconfirmedBlock(group *sync.WaitGroup) {
-	defer group.Done()
-
-	var isSaveEnd bool
-	for {
-		if isSaveEnd && len(qs.uncfmBlockCh) == 0 {
-			log.Info("Shutdown save unconfirmed block")
-			return
-		}
-
+func (qs *QitmeerSync) saveUnconfirmedBlock() {
+	for block := range qs.uncfmBlockCh {
 		select {
-		case block := <-qs.uncfmBlockCh:
-			if err := qs.storage.SaveBlock(block); err != nil {
-				log.Mailf(config.Setting.Email.Title, "Failed to save unconfirmed block %d %s, err:%v", block.Order, block.Hash, err)
-				if len(qs.reUncfmBlockSync) == 0 {
-					qs.reUncfmBlockSync <- struct{}{}
-				}
-				return
-			}
-			log.Infof("Save unconfirmed block %d", block.Order)
-		case <-qs.reUncfmBlockSync:
-			isSaveEnd = true
 		case <-qs.interupt:
 			log.Info("Shutdown save unconfirmed block")
 			return
+		default:
+			if err := qs.storage.SaveBlock(block); err != nil {
+				log.Errorf(config.Setting.Email.Title, "Failed to save unconfirmed block %d %s, err:%v", block.Order, block.Hash, err)
+			} else {
+				log.Infof("Save unconfirmed block %d", block.Order)
+			}
 		}
 	}
+	log.Infof("Save unconfirmed block end")
 }
 
-func (qs *QitmeerSync) requestUnconfirmedTransaction(group *sync.WaitGroup) {
-	defer group.Done()
-
+func (qs *QitmeerSync) requestUnconfirmedTransaction() {
 	blockMap := map[string]bool{}
 	txs := qs.storage.QueryUnconfirmedTranslateTransaction()
 	for _, tx := range txs {
 		select {
-		case <-qs.reUncfmTxSync:
-			log.Info("Stop and restart request unconfirmed transaction")
-			return
 		case <-qs.interupt:
 			log.Info("Shutdown request unconfirmed transaction")
 			return
@@ -398,39 +356,25 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction(group *sync.WaitGroup) {
 			}
 		}
 	}
-	log.Info("Write reUncfmTxSync")
-	qs.reUncfmTxSync <- struct{}{}
-	log.Info("Write reUncfmTxSync end")
+	log.Infof("Request unconfirmed transaction end")
 }
 
-func (qs *QitmeerSync) saveUnconfirmedTransaction(group *sync.WaitGroup) {
-	defer group.Done()
-
-	var isSaveEnd bool
-	for {
-		if isSaveEnd && len(qs.uncfmTxBlockCh) == 0 {
-			log.Info("Shutdown save unconfirmed transaction")
-			return
-		}
+func (qs *QitmeerSync) saveUnconfirmedTransaction() {
+	for block := range qs.uncfmTxBlockCh {
 		select {
-		case block := <-qs.uncfmTxBlockCh:
-			log.Infof("Save unconfirmed transaction in block %d %s", block.Order, block.Hash)
-			if err := qs.storage.SaveBlock(block); err != nil {
-				log.Mailf(config.Setting.Email.Title, "Failed to save unconfirmed transaction block %d, err:%v", block.Order, err)
-				if len(qs.reUncfmTxSync) == 0 {
-					qs.reUncfmTxSync <- struct{}{}
-				}
-				return
-			}
-			log.Infof("Save unconfirmed transaction block %d", block.Order)
-		case <-qs.reUncfmTxSync:
-			log.Info("Read reUncfmTxSync")
-			isSaveEnd = true
 		case <-qs.interupt:
 			log.Info("Shutdown save unconfirmed transaction")
 			return
+		default:
+			log.Infof("Save unconfirmed transaction in block %d %s", block.Order, block.Hash)
+			if err := qs.storage.SaveBlock(block); err != nil {
+				log.Errorf(config.Setting.Email.Title, "Failed to save unconfirmed transaction block %d, err:%v", block.Order, err)
+			} else {
+				log.Infof("Save unconfirmed transaction block %d", block.Order)
+			}
 		}
 	}
+	log.Infof("Save unconfirmed transaction end")
 }
 
 func (qs *QitmeerSync) initBlockCh() {
@@ -444,22 +388,14 @@ func (qs *QitmeerSync) initUncfmBlockCh() {
 	if qs.uncfmBlockCh != nil {
 		close(qs.uncfmBlockCh)
 	}
-	if qs.reUncfmBlockSync != nil {
-		close(qs.reUncfmBlockSync)
-	}
 	qs.uncfmBlockCh = make(chan *rpc.Block, 1000)
-	qs.reUncfmBlockSync = make(chan struct{}, 1)
 }
 
 func (qs *QitmeerSync) initUncfmTransactionCh() {
 	if qs.uncfmTxBlockCh != nil {
 		close(qs.uncfmTxBlockCh)
 	}
-	if qs.reUncfmTxSync != nil {
-		close(qs.reUncfmTxSync)
-	}
 	qs.uncfmTxBlockCh = make(chan *rpc.Block, 1000)
-	qs.reUncfmTxSync = make(chan struct{}, 1)
 }
 
 func isExist(err error) bool {
