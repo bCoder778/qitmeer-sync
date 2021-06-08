@@ -181,7 +181,7 @@ func (qs *QitmeerSync) syncTxPool() {
 }
 
 func (qs *QitmeerSync) dealFailedTransaction() {
-	ticker := time.NewTicker(time.Second * 60 * 10)
+	ticker := time.NewTicker(time.Second * 60 * 5)
 
 	defer func() {
 		ticker.Stop()
@@ -332,6 +332,7 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction() {
 			if tx.Duplicate {
 				blockHash = tx.BlockHash
 			} else {
+				// 交易的blockhash可能会改变
 				rpcTx, err := qs.rpc.GetTransaction(tx.TxId)
 				if err != nil {
 					log.Debugf("Request getTransaction %d rpc failed! err:%v", tx.BlockOrder, err)
