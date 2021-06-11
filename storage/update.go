@@ -26,7 +26,7 @@ type transactionData struct {
 
 func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
 	block := s.crateBlock(rpcBlock)
-	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.IsBlue)
+	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue)
 	if err != nil {
 		return err
 	}
@@ -41,8 +41,8 @@ func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
 	return s.db.UpdateBlockDatas(block, txData.Transactions, txData.Vins, txData.Vouts, txData.SpentedVouts, txData.Transfers)
 }
 
-func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order uint64, color int) error {
-	txData, err := s.createTransactions([]rpc.Transaction{*rpcTx}, order, color)
+func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order, height uint64, color int) error {
+	txData, err := s.createTransactions([]rpc.Transaction{*rpcTx}, order, height, color)
 	if err != nil {
 		return err
 	}
@@ -128,7 +128,7 @@ func (s *Storage) crateBlock(rpcBlock *rpc.Block) *types.Block {
 	return block
 }
 
-func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, color int) (*transactionData, error) {
+func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, height uint64, color int) (*transactionData, error) {
 	txs := []*types.Transaction{}
 	vins := []*types.Vin{}
 	vouts := []*types.Vout{}
@@ -217,6 +217,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, col
 			}
 			newVout := &types.Vout{
 				TxId:    rpcTx.Txid,
+				Height:  height,
 				Order:   order,
 				Address: vout.ScriptPubKey.Addresses[0],
 				Amount:  vout.Amount,

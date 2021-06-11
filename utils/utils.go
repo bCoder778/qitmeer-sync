@@ -6,10 +6,12 @@ import (
 	"encoding/hex"
 )
 
-
-func LittleHexToUint64(hexStr string)(uint64, error){
+func LittleHexToUint64(hexStr string) (uint64, error) {
+	if len(hexStr) == 1 {
+		hexStr = "0" + hexStr
+	}
 	src, err := hex.DecodeString(hexStr)
-	if err != nil{
+	if err != nil {
 		return 0, err
 	}
 	dst := make([]byte, 8)

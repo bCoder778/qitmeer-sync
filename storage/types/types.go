@@ -95,6 +95,7 @@ type Vout struct {
 	TxId          string        `xorm:"varchar(64) index" json:"txid"`
 	Number        int           `xorm:"int index" json:"number"`
 	Order         uint64        `xorm:"bigint" json:"order"`
+	Height        uint64        `xorm:"bigint" json:"height"`
 	Timestamp     int64         `xorm:"bigint" json:"timestamp"`
 	Address       string        `xorm:"varchar(35) index" json:"address"`
 	Amount        uint64        `xorm:"bigint" json:"amount"`

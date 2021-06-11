@@ -170,7 +170,7 @@ func (qs *QitmeerSync) syncTxPool() {
 						log.Warnf("Request getTransaction rpc failed! err:%v", err)
 						continue
 					}
-					if err := qs.storage.SaveTransaction(tx, 0, 1); err != nil {
+					if err := qs.storage.SaveTransaction(tx, 0, 0, 1); err != nil {
 						//log.Mailf(config.Setting.Email.Title, "Sync tx pool to save transaction %v failed! err:%v", tx, err)
 						continue
 					}
