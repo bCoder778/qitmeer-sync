@@ -210,17 +210,17 @@ func updateVouts(sess *xorm.Session, vouts []*types.Vout) error {
 
 	for _, vout := range vouts {
 		queryVout := &types.Vout{}
-		cols := []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`, `spented_tx`, `vout`, "confirmations", `sequence`, `script_sig`, `lock`, `stat`}
+		cols := []string{`order`, `height`, `timestamp`, `address`, `amount`, `script_pub_key`, `spented_tx`, `vout`, "confirmations", `sequence`, `script_sig`, `lock`, `stat`}
 		if ok, err := sess.Where("tx_id = ?  and number = ?", vout.TxId, vout.Number).Get(queryVout); err != nil {
 			return fmt.Errorf("faild to seesion exist vinout, %s", err.Error())
 		} else if ok {
 			if queryVout.Stat != stat.TX_Confirmed {
 				if vout.SpentTx != "" {
-					cols = []string{`order`, `timestamp`, `address`, `amount`,
+					cols = []string{`order`, `height`, `timestamp`, `address`, `amount`,
 						`script_pub_key`, `spent_tx`, "confirmations", `lock`,
 						`stat`}
 				} else if vout.SpentTx == "" {
-					cols = []string{`order`, `timestamp`, `address`, `amount`, `script_pub_key`,
+					cols = []string{`order`, `height`, `timestamp`, `address`, `amount`, `script_pub_key`,
 						`spented_tx`, "confirmations", `sequence`, `script_sig`, `lock`, `stat`}
 				}
 
