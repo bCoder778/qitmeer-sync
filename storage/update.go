@@ -8,6 +8,7 @@ import (
 	"github.com/bCoder778/qitmeer-sync/utils"
 	"github.com/bCoder778/qitmeer-sync/verify"
 	"github.com/bCoder778/qitmeer-sync/verify/stat"
+	"strconv"
 	"strings"
 )
 
@@ -117,7 +118,7 @@ func (s *Storage) crateBlock(rpcBlock *rpc.Block) *types.Block {
 		Difficulty:    rpcBlock.Difficulty,
 		PowName:       rpcBlock.Pow.PowName,
 		PowType:       rpcBlock.Pow.PowType,
-		Nonce:         rpcBlock.Pow.Nonce,
+		Nonce:         strconv.FormatUint(rpcBlock.Pow.Nonce, 10),
 		Address:       miner.Address,
 		Amount:        miner.Amount,
 	}

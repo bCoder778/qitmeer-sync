@@ -29,7 +29,7 @@ type Block struct {
 type Pow struct {
 	PowName   string     `json:"pow_name"`
 	PowType   int        `json:"pow_type"`
-	Nonce     string     `json:"nonce"`
+	Nonce     uint64     `json:"nonce"`
 	ProofData *ProofData `json:"proof_data"`
 }
 
