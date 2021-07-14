@@ -24,7 +24,7 @@ type Block struct {
 	Difficulty    uint64         `xorm:"bigint" json:"difficulty"`
 	PowName       string         `xorm:"varchar(20)" json:"powname"`
 	PowType       int            `xorm:"int" json:"powtype"`
-	Nonce         uint64         `xorm:"bigint" json:"nonce"`
+	Nonce         string         `xorm:"varchar(32)" json:"nonce"`
 	EdgeBits      int            `xorm:"int" json:"edgebits"`
 	CircleNonces  string         `xorm:"Text" json:"circlenonces"`
 	Address       string         `xorm:"varchar(40)" json:"address"`
