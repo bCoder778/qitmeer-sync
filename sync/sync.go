@@ -335,8 +335,13 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction() {
 				// 交易的blockhash可能会改变
 				rpcTx, err := qs.rpc.GetTransaction(tx.TxId)
 				if err != nil {
-					log.Debugf("Request getTransaction %d rpc failed! err:%v", tx.BlockOrder, err)
-					time.Sleep(time.Second * waitBlockTime)
+					color, err := qs.rpc.IsBlue(tx.BlockHash)
+					if err != nil {
+						log.Debugf("Request getTransaction %d rpc failed! err:%v", tx.BlockOrder, err)
+						time.Sleep(time.Second * waitBlockTime)
+					} else if color == 2 {
+						qs.storage.UpdateTransactionStat(tx.TxId, stat.TX_Failed)
+					}
 					continue
 				}
 				blockHash = rpcTx.BlockHash
