@@ -21,6 +21,8 @@ github.com/Qitmeer/crypto/cryptonight v0.0.0-20201028030128-6ed4040ca34a h1:O2Er
 github.com/Qitmeer/crypto/cryptonight v0.0.0-20201028030128-6ed4040ca34a/go.mod h1:KiA7g46zc6dkgf/3NbEpJirY75v656WYlmSQNR1wTVk=
 github.com/Qitmeer/qitmeer v0.10.0-dev.0.20210525055030-b76ef2da66d5 h1:hBWak+XVb1C+fXTRhk90eLpUVtJondmTcQpPezu0p5U=
 github.com/Qitmeer/qitmeer v0.10.0-dev.0.20210525055030-b76ef2da66d5/go.mod h1:QpVeLRsi4tzJMRu+Yk+V4ciCFwkR76Ojg4I+RgxYjwM=
+github.com/Qitmeer/qitmeer v0.10.0-dev.0.20210719034054-6450a17ac94c h1:o0KTTPVWqel9wDy4NpnIaM0WHVnNIMgfD3klQyQa8Jc=
+github.com/Qitmeer/qitmeer v0.10.0-dev.0.20210719034054-6450a17ac94c/go.mod h1:QpVeLRsi4tzJMRu+Yk+V4ciCFwkR76Ojg4I+RgxYjwM=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/sarama v1.26.1/go.mod h1:NbSGBSSndYaIhRcBtY9V0U7AyH+x71bG668AuWys/yU=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=

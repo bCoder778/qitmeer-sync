@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	types2 "github.com/Qitmeer/qitmeer/core/types"
 	"github.com/bCoder778/qitmeer-sync/config"
 	"github.com/bCoder778/qitmeer-sync/rpc"
 	"github.com/bCoder778/qitmeer-sync/storage/types"
@@ -146,7 +147,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 			)
 			if vin.Coinbase != "" {
 				address = "coinbase"
-			} else if vin.Txid != "0000000000000000000000000000000000000000000000000000000000000000" && vin.Vout != 4294967295 {
+			} else if vin.Txid != "0000000000000000000000000000000000000000000000000000000000000000" && vin.Vout != 0xfffffffe {
 				vout, err := s.db.GetVout(vin.Txid, vin.Vout)
 				if err != nil {
 					return nil, fmt.Errorf("query txid %s, vout=%d failed!", vin.Txid, vin.Vout)
