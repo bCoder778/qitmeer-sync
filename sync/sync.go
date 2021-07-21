@@ -257,11 +257,9 @@ func (qs *QitmeerSync) saveBlock(group *sync.WaitGroup) {
 		select {
 		case block := <-qs.blockCh:
 			if err := qs.storage.SaveBlock(block); err != nil {
-				if block.Order != 0 {
-					log.Mailf(config.Setting.Email.Title, "Failed to save block %d %s, err:%s", block.Order, block.Hash, err.Error())
-					qs.reBlockSync <- struct{}{}
-					return
-				}
+				log.Mailf(config.Setting.Email.Title, "Failed to save block %d %s, err:%s", block.Order, block.Hash, err.Error())
+				qs.reBlockSync <- struct{}{}
+				return
 			}
 			log.Infof("Save block %d", block.Order)
 			if _, err := qs.storage.VerifyQitmeer(block); err != nil {
