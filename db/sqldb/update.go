@@ -32,6 +32,7 @@ func ConnectMysql(conf *config.DB) (*DB, error) {
 		new(types.Vin),
 		new(types.Vout),
 		new(types.Transfer),
+		new(types.Coin),
 	); err != nil {
 		return nil, err
 	}
@@ -53,6 +54,7 @@ func ConnectSqlServer(conf *config.DB) (*DB, error) {
 		new(types.Vin),
 		new(types.Vout),
 		new(types.Transfer),
+		new(types.Coin),
 	); err != nil {
 		return nil, err
 	}
@@ -69,6 +71,7 @@ func (d *DB) Clear() error {
 	d.engine.DropTables("vin")
 	d.engine.DropTables("vout")
 	d.engine.DropTables("transfer")
+	d.engine.DropTables("coin")
 	return nil
 }
 
