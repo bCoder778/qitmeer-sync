@@ -177,7 +177,7 @@ func (c *Client) GetPeerInfo() ([]PeerInfo, error) {
 	return rs, nil
 }
 
-func (c *Client) GetCoins( ([]types.Coin, error) {
+func (c *Client) GetCoins() ([]types.Coin, error) {
 	resp := NewReqeust(nil).SetMethod("getTokenInfo").call(c.rpcAuth)
 	coins := []types.Coin{}
 	if resp.Error != nil {
