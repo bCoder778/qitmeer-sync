@@ -2,7 +2,6 @@ package storage
 
 import (
 	"fmt"
-	types2 "github.com/Qitmeer/qitmeer/core/types"
 	"github.com/bCoder778/qitmeer-sync/config"
 	"github.com/bCoder778/qitmeer-sync/rpc"
 	"github.com/bCoder778/qitmeer-sync/storage/types"
@@ -309,6 +308,10 @@ func (s *Storage) BlockMiner(rpcBlock *rpc.Block) *types.Miner {
 		}
 	}
 	return &types.Miner{}
+}
+
+func (s *Storage) UpdateCoins(coins []types.Coin) {
+	s.db.UpdateCoin(coins)
 }
 
 type AddressInOut struct {

@@ -68,6 +68,9 @@ func (qs *QitmeerSync) Run() {
 	qs.wg.Add(1)
 	go qs.dealFailedTransaction()
 
+	qs.wg.Add(1)
+	go qs.updateCoins()
+
 	qs.wg.Wait()
 	if err := qs.storage.Close(); err != nil {
 		log.Errorf("Close storage failed! %s", err.Error())
@@ -216,6 +219,27 @@ func (qs *QitmeerSync) dealTransaction(tx types.Transaction) {
 			if err := qs.storage.UpdateTransactionStat(tx.TxId, stat.TX_Failed); err != nil {
 				log.Mailf("Failed to update transaction %s stat to failed!err %v", tx.TxId, err)
 			}
+		}
+	}
+}
+
+func (qs *QitmeerSync) updateCoins() {
+	ticker := time.NewTicker(time.Second * 60 * 10)
+
+	defer func() {
+		ticker.Stop()
+		qs.wg.Done()
+	}()
+
+	for {
+		select {
+		case <-qs.interupt:
+			log.Info("Shutdown update coin")
+			return
+		case <-ticker.C:
+			log.Info("Start update coin")
+			coins, _ := qs.rpc.GetCoins()
+			qs.storage.UpdateCoins(coins)
 		}
 	}
 }

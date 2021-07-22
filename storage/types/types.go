@@ -118,3 +118,8 @@ type ScriptSig struct {
 	Asm string `json:"asm"`
 	Hex string `json:"hex"`
 }
+
+type Coin struct {
+	CoinId   uint16 `xorm:"bigint pk id" json:"coinId"`
+	CoinName string `xorm:"varchar(35)" json:"coinName"`
+}

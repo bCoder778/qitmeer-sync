@@ -22,7 +22,7 @@ type IUpdate interface {
 
 	UpdateBlock(block *types.Block) error
 	UpdateTransactionStat(tx *types.Transaction) error
-
+	UpdateCoin(coins []types.Coin) error
 	DeleteTransaction(tx *types.Transaction) error
 }
 

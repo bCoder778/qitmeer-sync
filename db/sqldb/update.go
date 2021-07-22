@@ -328,6 +328,23 @@ func (d *DB) UpdateBlock(block *types.Block) error {
 	return nil
 }
 
+func (d *DB) UpdateCoin(coins []types.Coin) error {
+	for _, coin := range coins {
+		queryCoin := &types.Coin{}
+		if ok, err := d.engine.Where("id = ?", coin.CoinId).Get(queryCoin); err != nil {
+			return fmt.Errorf("faild to seesion exist block, %s", err.Error())
+		} else if ok {
+			return nil
+		} else {
+
+			if _, err := d.engine.Insert(coin); err != nil {
+				return fmt.Errorf("insert block error, %s", err)
+			}
+		}
+	}
+	return nil
+}
+
 func (d *DB) UpdateTransactionStat(tx *types.Transaction) error {
 	sess := d.engine.NewSession()
 	defer sess.Close()

@@ -176,6 +176,18 @@ func (c *Client) GetPeerInfo() ([]PeerInfo, error) {
 	return rs, nil
 }
 
+func (c *Client) GetCoins( ([]Coin, error) {
+	resp := NewReqeust(nil).SetMethod("getTokenInfo").call(c.rpcAuth)
+	coins := []Coin{}
+	if resp.Error != nil {
+		return coins, errors.New(resp.Error.Message)
+	}
+	if err := json.Unmarshal(resp.Result, &coins); err != nil {
+		return coins, err
+	}
+	return coins, nil
+}
+
 func (req *ClientRequest) call(auth *config.Rpc) *ClientResponse {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
