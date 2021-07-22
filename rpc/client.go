@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/bCoder778/qitmeer-sync/config"
+	"github.com/bCoder778/qitmeer-sync/storage/types"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -176,9 +177,9 @@ func (c *Client) GetPeerInfo() ([]PeerInfo, error) {
 	return rs, nil
 }
 
-func (c *Client) GetCoins( ([]Coin, error) {
+func (c *Client) GetCoins( ([]types.Coin, error) {
 	resp := NewReqeust(nil).SetMethod("getTokenInfo").call(c.rpcAuth)
-	coins := []Coin{}
+	coins := []types.Coin{}
 	if resp.Error != nil {
 		return coins, errors.New(resp.Error.Message)
 	}
