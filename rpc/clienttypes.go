@@ -19,6 +19,7 @@ type ClientResponse struct {
 	Error  *Error          `json:"error"`
 	ID     interface{}     `json:"id"`
 }
+
 type Error struct {
 	Code    int         `json:"code,omitempty"`
 	Message string      `json:"message,omitempty"`
