@@ -247,6 +247,9 @@ func (qs *QitmeerSync) updateCoins() {
 func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 	defer group.Done()
 
+	block0, _ := qs.getBlockById(0)
+	qs.storage.Set10GenesisUTXO(block0)
+
 	start := qs.storage.LastId()
 	if start <= 5 {
 		start = 0

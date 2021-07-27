@@ -25,6 +25,18 @@ type transactionData struct {
 	Transfers    []*types.Transfer
 }
 
+func (s *Storage) Set10GenesisUTXO(rpcBlock *rpc.Block) error {
+	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue)
+	if err != nil {
+		return err
+	}
+	if config.Setting.Verify.Version == "0.10" && rpcBlock.Order == 0 && rpcBlock.Height == 0 {
+		coinMap := parseVoutCoinAmount(txData.Vouts)
+		s.verify.Set10GenesisUTXO(coinMap)
+	}
+	return nil
+}
+
 func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
 	block := s.crateBlock(rpcBlock)
 	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue)

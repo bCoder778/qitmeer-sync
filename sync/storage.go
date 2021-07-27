@@ -29,6 +29,7 @@ type IUpdate interface {
 	SaveTransaction(tx *rpc.Transaction, order, height uint64, color int) error
 	UpdateTransactionStat(txId string, stat stat.TxStat) error
 	UpdateCoins(coins []types.Coin)
+	Set10GenesisUTXO(rpcBlock *rpc.Block) error
 }
 
 type IQueryBlock interface {
