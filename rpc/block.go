@@ -62,6 +62,7 @@ type Transaction struct {
 type Vin struct {
 	//在有交易打包后才有此字段，也就是说接收过他人转账，并且有可用的utxo都块才会在vin中包含这个字段
 	Txid string `json:"txid"`
+	Type string `json:"type"`
 	//在有交易打包后才有此字段
 	Vout        int    `json:"vout"`
 	Amountin    uint64 `json:"amountin"`
