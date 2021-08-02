@@ -216,8 +216,10 @@ func (qs *QitmeerSync) dealTransaction(tx types.Transaction) {
 	_, err := qs.rpc.GetTransaction(tx.TxId)
 	if err != nil {
 		if isExist(err) {
-			if err := qs.storage.UpdateTransactionStat(tx.TxId, stat.TX_Failed); err != nil {
-				log.Mailf("Failed to update transaction %s stat to failed!err %v", tx.TxId, err)
+			if  time.Now().Unix() - tx.Timestamp  > 60 * 30{
+				if err := qs.storage.UpdateTransactionStat(tx.TxId, stat.TX_Failed); err != nil {
+					log.Mailf("Failed to update transaction %s stat to failed!err %v", tx.TxId, err)
+				}
 			}
 		}
 	}
