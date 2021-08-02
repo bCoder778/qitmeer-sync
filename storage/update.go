@@ -284,6 +284,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 			Txsvaild:      rpcTx.Txsvalid,
 			IsCoinbase:    s.verify.IsCoinBase(&rpcTx),
 			VinAmount :    totalVin,
+			VoutAmount :   totalVout,
 			VinAddress:    vinAddress,
 			VoutAddress:   voutAddress,
 			Vins:          len(rpcTx.Vin),
