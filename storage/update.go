@@ -163,7 +163,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 			if vin.Coinbase != "" {
 				address = "coinbase"
 				vinAddress = address
-			} else if vin.Txid != "0000000000000000000000000000000000000000000000000000000000000000" &&vin.Type != "TxTypeTokenNew" &&
+			} else if vin.Txid != "0000000000000000000000000000000000000000000000000000000000000000" && vin.Type != "TxTypeTokenNew" &&
 				vin.Type != "TxTypeTokenMint" {
 				vout, err := s.db.GetVout(vin.Txid, vin.Vout)
 				if err != nil {
