@@ -147,6 +147,9 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 	vouts := []*types.Vout{}
 	spentedVouts := []*types.Vout{}
 	transfers := []*types.Transfer{}
+	vinAddress := ""
+	voutAddress := ""
+
 	for _, rpcTx := range rpcTxs {
 		addressInOut := NewAddressInOutMap()
 		status := s.verify.TransactionStat(&rpcTx, color)
@@ -156,13 +159,12 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 				address string
 				amount  uint64
 			)
+
 			if vin.Coinbase != "" {
 				address = "coinbase"
+				vinAddress = address
 			} else if vin.Type != "TxTypeTokenNew" &&
-				vin.Type != "TxTypeTokenMint" &&
-				vin.Txid != "0000000000000000000000000000000000000000000000000000000000000000" &&
-				vin.Vout != 0xfffffffe {
-
+				vin.Type != "TxTypeTokenMint" {
 				vout, err := s.db.GetVout(vin.Txid, vin.Vout)
 				if err != nil {
 					return nil, fmt.Errorf("query txid %s, vout=%d failed!", vin.Txid, vin.Vout)
@@ -173,6 +175,10 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 					if vout, err = s.finVout(vin.Txid, vin.Vout, vouts); err != nil {
 						return nil, fmt.Errorf("query txid %s, vout=%d failed!", vin.Txid, vin.Vout)
 					}
+				}
+
+				if index == 0{
+					vinAddress = vout.Address
 				}
 				// 添加需要更新的被花费vout
 				if status != stat.TX_Failed {
@@ -205,6 +211,8 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 					Timestamp:     rpcTx.Timestamp.Unix(),
 				}
 				vins = append(vins, newVin)
+			}else{
+				vinAddress = "Token"
 			}
 		}
 
@@ -227,7 +235,9 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 			default:
 				continue
 			}
-
+			if index == 0{
+				voutAddress = vout.ScriptPubKey.Addresses[0]
+			}
 			if vout.CoinID == "" {
 				// 0.9的网络
 				vout.CoinID = verify.PMEERID
@@ -273,6 +283,9 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 			Confirmations: rpcTx.Confirmations,
 			Txsvaild:      rpcTx.Txsvalid,
 			IsCoinbase:    s.verify.IsCoinBase(&rpcTx),
+			VinAmount :    totalVin,
+			VinAddress:    vinAddress,
+			VoutAddress:   voutAddress,
 			Vins:          len(rpcTx.Vin),
 			Vouts:         len(rpcTx.Vout),
 			Fees:          fees,

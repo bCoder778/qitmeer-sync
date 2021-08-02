@@ -52,6 +52,10 @@ type Transaction struct {
 	Confirmations uint64      `xorm:"bigint" json:"confirmations"`
 	Txsvaild      bool        `xorm:"bool" json:"txsvaild"`
 	IsCoinbase    bool        `xorm:"bool" json:"iscoinbase"`
+	VinAmount 	  uint64 	  `xorm:"bigint" json:"vinamount"`
+	VinAddress    string 	  `xorm:"varchar(35)" json:"vinaddress"`
+	VoutAddress   string 	  `xorm:"varchar(35)" json:"voutaddress"`
+	To 			  string 	  ``
 	Vins          int         `xorm:"int" json:"vin"`
 	Vouts         int         `xorm:"int" json:"vout"`
 	Fees          uint64      `xorm:"bigint" json:"fees"`
