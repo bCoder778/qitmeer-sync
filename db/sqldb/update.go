@@ -256,15 +256,33 @@ func updateTransactions(sess *xorm.Session, txs []*types.Transaction) error {
 	// 更新transaction
 	for _, tx := range txs {
 		queryTx := &types.Transaction{}
-		if ok, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).Get(queryTx); err != nil {
+		if ok, err := sess.Where("tx_id = ?", tx.TxId).Get(queryTx); err != nil {
 			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
 		} else if ok {
-			if queryTx.Stat != stat.TX_Confirmed {
-				if _, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).
-					Cols(`block_order`, `tx_hash`, `size`, `version`, `locktime`,
-						`timestamp`, `expire`, `confirmations`, `txsvaild`, `is_coinbase`,
-						`vins`, `vouts`, `total_vin`, `total_vout`, `fees`, `duplicate`,
-						`stat`).Update(tx); err != nil {
+			/*cols := []string{`block_order`, `block_hash`, `tx_hash`, `size`, `version`, `locktime`,
+				`timestamp`, `expire`, `confirmations`, `txsvaild`, `is_coinbase`,
+				`vins`, `vouts`, `total_vin`, `total_vout`, `fees`, `duplicate`,
+				`stat`}*/
+			isUpdate := false
+			if tx.Stat == stat.TX_Confirmed{
+				isUpdate = true
+			}else {
+				switch queryTx.Stat {
+				case stat.TX_Memry:
+					isUpdate = true
+				case stat.TX_Unconfirmed:
+					if tx.Stat == stat.TX_Unconfirmed {
+						isUpdate = true
+					}else if tx.Stat == stat.TX_Failed{
+						if tx.BlockHash == queryTx.BlockHash{
+							isUpdate = true
+						}
+					}
+				}
+
+			}
+			if isUpdate {
+				if _, err := sess.Where("tx_id = ? ", tx.TxId).Update(tx); err != nil {
 					return err
 				}
 			}
