@@ -40,8 +40,8 @@ type Miner struct {
 
 type Transaction struct {
 	Id            uint64      `xorm:"bigint autoincr pk" json:"id"`
-	TxId          string      `xorm:"varchar(64) unique" json:"txid"`
-	BlockHash     string      `xorm:"varchar(64)" json:"blockhash"`
+	TxId          string      `xorm:"varchar(64) index" json:"txid"`
+	BlockHash     string      `xorm:"varchar(64) index" json:"blockhash"`
 	BlockOrder    uint64      `xorm:"bigint" json:"blockorder"`
 	TxHash        string      `xorm:"varchar(64)" json:"txhash"`
 	Size          int         `xorm:"int" json:"size"`

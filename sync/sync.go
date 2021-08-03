@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	waitBlockTime = 30
+	waitBlockTime = 5
 )
 
 type QitmeerSync struct {
@@ -216,7 +216,8 @@ func (qs *QitmeerSync) dealTransaction(tx types.Transaction) {
 	_, err := qs.rpc.GetTransaction(tx.TxId)
 	if err != nil {
 		if isExist(err) {
-			if  time.Now().Unix() - tx.Timestamp  > 60 * 30{
+			if  time.Now().Unix() - tx.Timestamp  > 60 * 60{
+				log.Infof("dealTransaction tx failed")
 				if err := qs.storage.UpdateTransactionStat(tx.TxId, stat.TX_Failed); err != nil {
 					log.Mailf("Failed to update transaction %s stat to failed!err %v", tx.TxId, err)
 				}
@@ -363,16 +364,17 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction() {
 			} else {
 				// 交易的blockhash可能会改变
 				rpcTx, err := qs.rpc.GetTransaction(tx.TxId)
-				if err != nil {
-					color, err := qs.rpc.IsBlue(tx.BlockHash)
-					if err != nil {
-						log.Debugf("Request getTransaction %d rpc failed! err:%v", tx.BlockOrder, err)
-						time.Sleep(time.Second * waitBlockTime)
-					} else if color == 2 {
-						qs.storage.UpdateTransactionStat(tx.TxId, stat.TX_Failed)
+				if err != nil  && isExist(err) {
+					log.Errorf("get transaction %s", err.Error())
+					if  time.Now().Unix() - tx.Timestamp  > 60 * 60{
+						log.Infof("update tx failed")
+						if err := qs.storage.UpdateTransactionStat(tx.TxId, stat.TX_Failed); err != nil {
+							log.Mailf("Failed to update transaction %s stat to failed!err %v", tx.TxId, err)
+						}
 					}
 					continue
 				}
+
 				blockHash = rpcTx.BlockHash
 			}
 
