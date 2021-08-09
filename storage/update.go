@@ -118,6 +118,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 	voutAddress := ""
 
 	for _, rpcTx := range rpcTxs {
+		isCoinbase := s.verify.IsCoinBase(&rpcTx)
 		addressInOut := NewAddressInOutMap()
 		status := s.verify.TransactionStat(&rpcTx, color)
 		var totalVin, totalVout, fees uint64
@@ -217,6 +218,8 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 				Amount:  vout.Amount,
 				CoinId:  vout.CoinID,
 				Number:  index,
+				IsCoinbase: isCoinbase,
+				IsBlue:     color == 1,
 				ScriptPubKey: &types.ScriptPubKey{
 					Asm:     vout.ScriptPubKey.Asm,
 					Hex:     vout.ScriptPubKey.Hex,
@@ -249,7 +252,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 			BlockOrder:    order,
 			Confirmations: rpcTx.Confirmations,
 			Txsvaild:      rpcTx.Txsvalid,
-			IsCoinbase:    s.verify.IsCoinBase(&rpcTx),
+			IsCoinbase:    isCoinbase,
 			VinAmount :    totalVin,
 			VoutAmount :   totalVout,
 			VinAddress:    vinAddress,
@@ -274,7 +277,8 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 				Confirmations: tx.Confirmations,
 				CoinId:        change.CoinID,
 				Txsvaild:      tx.Txsvaild,
-				IsCoinbase:    tx.IsCoinbase,
+				IsCoinbase:    isCoinbase,
+				IsBlue:		   color == 1,
 				Change:        change.Change,
 				Timestamp:     tx.Timestamp,
 				Fees:          tx.Fees,

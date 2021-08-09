@@ -73,6 +73,7 @@ type Transfer struct {
 	Confirmations uint64      `xorm:"bigint" json:"confirmations"`
 	Txsvaild      bool        `xorm:"bool" json:"txsvaild"`
 	IsCoinbase    bool        `xorm:"bool " json:"iscoinbase"`
+	IsBlue        bool 		  `xorm:"bool" json:"isblue"`
 	Change        int64       `xorm:"bigint index" json:"change"`
 	Fees          uint64      `xorm:"bigint" json:"fees"`
 	Timestamp     int64       `xorm:"bigint" json:"timestamp"`
@@ -106,6 +107,8 @@ type Vout struct {
 	Address       string        `xorm:"varchar(35) index" json:"address"`
 	Amount        uint64        `xorm:"bigint" json:"amount"`
 	CoinId        string        `xorm:"varchar(30)" json:"coinid"`
+	IsCoinbase    bool 			`xorm:"bool" json:"iscoinbase"`
+	IsBlue        bool 			`xorm:"bool" json:"isblue"`
 	ScriptPubKey  *ScriptPubKey `xorm:"json" json:"scriptpubkey"`
 	SpentTx       string        `xorm:"varchar(64)" json:"spenttx"`
 	Confirmations uint64        `xorm:"bigint" json:"confirmations"`

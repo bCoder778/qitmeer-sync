@@ -220,11 +220,11 @@ func updateVouts(sess *xorm.Session, vouts []*types.Vout) error {
 			if queryVout.Stat != stat.TX_Confirmed {
 				if vout.SpentTx != "" {
 					cols = []string{`order`, `height`, `timestamp`, `address`, `amount`,
-						`script_pub_key`, `spent_tx`, "confirmations", `lock`,
+						`script_pub_key`, `spent_tx`, "confirmations", `lock`, `is_coinbase`, `is_blue`,
 						`stat`}
 				} else if vout.SpentTx == "" {
 					cols = []string{`order`, `height`, `timestamp`, `address`, `amount`, `script_pub_key`,
-						`spented_tx`, "confirmations", `sequence`, `script_sig`, `lock`, `stat`}
+						`spented_tx`, "confirmations", `sequence`, `script_sig`, `lock`, `is_coinbase`, `is_blue`, `stat`}
 				}
 
 				if _, err := sess.Where("tx_id = ? and number = ?", vout.TxId, vout.Number).
@@ -298,7 +298,7 @@ func updateTransfers(sess *xorm.Session, transfers []*types.Transfer) error {
 		} else if ok {
 			if queryTransfer.Stat != stat.TX_Confirmed {
 				if _, err := sess.Where("tx_id = ? and address = ? and coin_id = ?", tras.TxId, tras.Address, tras.CoinId).
-					Cols(`change`, `fees`, `confirmations`, `txsvaild`, `stat`).Update(tras); err != nil {
+					Cols(`change`, `fees`, `confirmations`, `txsvaild`, `is_coinbase`, `is_blue`, `stat`).Update(tras); err != nil {
 					return err
 				}
 			}
