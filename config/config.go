@@ -27,7 +27,7 @@ func LoadConfig() error {
 }
 
 type Config struct {
-	Rpc       *Rpc       `toml:"rpc"`
+	Rpc       []*Rpc     `toml:"rpcs"`
 	DB        *DB        `toml:"db"`
 	Log       *Log       `toml:"log"`
 	Email     *EMail     `toml:"email"`

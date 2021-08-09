@@ -67,6 +67,7 @@ type Transaction struct {
 type Transfer struct {
 	Id            uint64      `xorm:"bigint autoincr pk" json:"id"`
 	TxId          string      `xorm:"varchar(64) index" json:"txid"`
+	BlockHash     string      `xorm:"varchar(64)" json:"block_hash"`
 	Address       string      `xorm:"varchar(35) index" json:"address"`
 	CoinId        string      `xorm:"varchar(30) index" json:"conid"`
 	Confirmations uint64      `xorm:"bigint" json:"confirmations"`

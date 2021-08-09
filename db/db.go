@@ -5,6 +5,7 @@ import (
 	"github.com/bCoder778/qitmeer-sync/config"
 	"github.com/bCoder778/qitmeer-sync/db/sqldb"
 	"github.com/bCoder778/qitmeer-sync/storage/types"
+	"github.com/bCoder778/qitmeer-sync/verify/stat"
 )
 
 type IDB interface {
@@ -21,9 +22,8 @@ type IUpdate interface {
 	UpdateTransactionDatas(txs []*types.Transaction, vins []*types.Vin, vouts []*types.Vout, spentedVouts []*types.Vout, transfers []*types.Transfer) error
 
 	UpdateBlock(block *types.Block) error
-	UpdateTransactionStat(tx *types.Transaction) error
+	UpdateTransactionStat(txId string, stat stat.TxStat) error
 	UpdateCoin(coins []types.Coin) error
-	DeleteTransaction(tx *types.Transaction) error
 }
 
 type IGet interface {

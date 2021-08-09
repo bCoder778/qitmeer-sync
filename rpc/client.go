@@ -7,23 +7,75 @@ import (
 	"errors"
 	"github.com/bCoder778/qitmeer-sync/config"
 	"github.com/bCoder778/qitmeer-sync/storage/types"
+	"github.com/bCoder778/qitmeer-sync/verify/stat"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Client struct {
-	rpcAuth *config.Rpc
+	rpcAuth []*config.Rpc
+	main *config.Rpc
 }
 
-func NewClient(auth *config.Rpc) *Client {
-	return &Client{auth}
+func NewClient(auth []*config.Rpc) *Client {
+	return &Client{rpcAuth: auth, main: auth[0]}
+}
+
+func (c *Client)TransactionStat(txid string, timestamp int64)stat.TxStat{
+	exist := false
+	notConfirmed := false
+	inBlock := false
+	for _, auth := range c.rpcAuth{
+		tx, err := c.getTransaction(txid, auth)
+		if err != nil && isNotExist(err){
+			continue
+		}else{
+			if tx.Confirmations >= stat.Tx_Confirmed_Value{
+				return  stat.TX_Confirmed
+			}
+			if tx.Confirmations < 1{
+				notConfirmed = true
+			}
+			if tx.BlockHash != ""{
+				inBlock = true
+			}
+			exist = true
+		}
+	}
+	if !exist{
+		if time.Now().Unix() - timestamp > 60 * 60 {
+			return stat.TX_Failed
+		}
+		return stat.TX_Unconfirmed
+	}else{
+		if notConfirmed{
+			return stat.TX_Unconfirmed
+		}else if inBlock{
+			return stat.TX_Confirmed
+		}else{
+			return stat.TX_Memry
+		}
+	}
+}
+
+
+func isNotExist(err error) bool {
+	if strings.Contains(err.Error(), "No information available about transaction") {
+		return true
+	}
+	return false
 }
 
 func (c *Client) GetBlock(h uint64) (*Block, error) {
+	return c.getBlock(h, c.main)
+}
+
+func (c *Client) getBlock(h uint64, auth *config.Rpc) (*Block, error) {
 	params := []interface{}{h, true}
-	resp := NewReqeust(params).SetMethod("getBlockByOrder").call(c.rpcAuth)
+	resp := NewReqeust(params).SetMethod("getBlockByOrder").call(auth)
 	blk := new(Block)
 	if resp.Error != nil {
 		return blk, errors.New(resp.Error.Message)
@@ -35,8 +87,12 @@ func (c *Client) GetBlock(h uint64) (*Block, error) {
 }
 
 func (c *Client) GetBlockByHash(hash string) (*Block, error) {
+	return c.geetBlockByHash(hash, c.main)
+}
+
+func (c *Client) geetBlockByHash(hash string, auth *config.Rpc) (*Block, error) {
 	params := []interface{}{hash, true}
-	resp := NewReqeust(params).SetMethod("getBlock").call(c.rpcAuth)
+	resp := NewReqeust(params).SetMethod("getBlock").call(auth)
 	blk := new(Block)
 	if resp.Error != nil {
 		return blk, errors.New(resp.Error.Message)
@@ -48,8 +104,12 @@ func (c *Client) GetBlockByHash(hash string) (*Block, error) {
 }
 
 func (c *Client) GetBlockCount() (uint64, error) {
+	return c.getBlockCount(c.main)
+}
+
+func (c *Client) getBlockCount(auth *config.Rpc) (uint64, error) {
 	var params []interface{}
-	resp := NewReqeust(params).SetMethod("getBlockCount").call(c.rpcAuth)
+	resp := NewReqeust(params).SetMethod("getBlockCount").call(auth)
 	if resp.Error != nil {
 		return 0, errors.New(resp.Error.Message)
 	}
@@ -61,8 +121,12 @@ func (c *Client) GetBlockCount() (uint64, error) {
 }
 
 func (c *Client) GetMainChainHeight() (uint64, error) {
+	return c.getMainChainHeight(c.main)
+}
+
+func (c *Client) getMainChainHeight(auth *config.Rpc) (uint64, error) {
 	var params []interface{}
-	resp := NewReqeust(params).SetMethod("getMainChainHeight").call(c.rpcAuth)
+	resp := NewReqeust(params).SetMethod("getMainChainHeight").call(auth)
 	if resp.Error != nil {
 		return 0, errors.New(resp.Error.Message)
 	}
@@ -74,8 +138,12 @@ func (c *Client) GetMainChainHeight() (uint64, error) {
 }
 
 func (c *Client) SendTransaction(tx string) (string, error) {
+	return c.sendTransaction(tx, c.main)
+}
+
+func (c *Client) sendTransaction(tx string, auth *config.Rpc) (string, error) {
 	params := []interface{}{strings.Trim(tx, "\n"), true}
-	resp := NewReqeust(params).SetMethod("sendRawTransaction").call(c.rpcAuth)
+	resp := NewReqeust(params).SetMethod("sendRawTransaction").call(auth)
 	if resp.Error != nil {
 		return resp.Error.Message, errors.New(resp.Error.Message)
 	}
@@ -85,8 +153,12 @@ func (c *Client) SendTransaction(tx string) (string, error) {
 }
 
 func (c *Client) GetTransaction(txId string) (*Transaction, error) {
+	return c.getTransaction(txId, c.main)
+}
+
+func (c *Client) getTransaction(txId string, auth *config.Rpc) (*Transaction, error) {
 	params := []interface{}{txId, true}
-	resp := NewReqeust(params).SetMethod("getRawTransaction").call(c.rpcAuth)
+	resp := NewReqeust(params).SetMethod("getRawTransaction").call(auth)
 	if resp.Error != nil {
 		return nil, errors.New(resp.Error.Message)
 	}
@@ -97,27 +169,13 @@ func (c *Client) GetTransaction(txId string) (*Transaction, error) {
 	return rs, nil
 }
 
-func (c *Client) CreateTransaction(inputs []TransactionInput, amounts Amounts) (string, error) {
-	jsonInput, err := json.Marshal(inputs)
-	if err != nil {
-		return "", err
-	}
-	jsonAmount, err := json.Marshal(amounts)
-	if err != nil {
-		return "", err
-	}
-	params := []interface{}{json.RawMessage(jsonInput), json.RawMessage(jsonAmount)}
-	resp := NewReqeust(params).SetMethod("createRawTransaction").call(c.rpcAuth)
-	if resp.Error != nil {
-		return "", errors.New(resp.Error.Message)
-	}
-	encode := string(resp.Result)
-	return encode, nil
+func (c *Client) GetMemoryPool() ([]string, error) {
+	return c.getMemoryPool(c.main)
 }
 
-func (c *Client) GetMemoryPool() ([]string, error) {
+func (c *Client) getMemoryPool(auth *config.Rpc) ([]string, error) {
 	params := []interface{}{"", false}
-	resp := NewReqeust(params).SetMethod("getMempool").call(c.rpcAuth)
+	resp := NewReqeust(params).SetMethod("getMempool").call(auth)
 	if resp.Error != nil {
 		return nil, errors.New(resp.Error.Message)
 	}
@@ -129,8 +187,12 @@ func (c *Client) GetMemoryPool() ([]string, error) {
 }
 
 func (c *Client) GetBlockById(id uint64) (*Block, error) {
+	return c.getBlockById(id, c.main)
+}
+
+func (c *Client) getBlockById(id uint64, auth *config.Rpc) (*Block, error) {
 	params := []interface{}{id, true}
-	resp := NewReqeust(params).SetMethod("getBlockByID").call(c.rpcAuth)
+	resp := NewReqeust(params).SetMethod("getBlockByID").call(auth)
 	blk := new(Block)
 	if resp.Error != nil {
 		return blk, errors.New(resp.Error.Message)
@@ -142,8 +204,13 @@ func (c *Client) GetBlockById(id uint64) (*Block, error) {
 }
 
 func (c *Client) IsBlue(hash string) (int, error) {
+	return c.isBlue(hash, c.main)
+}
+
+
+func (c *Client) isBlue(hash string, auth *config.Rpc) (int, error) {
 	params := []interface{}{hash}
-	resp := NewReqeust(params).SetMethod("isBlue").call(c.rpcAuth)
+	resp := NewReqeust(params).SetMethod("isBlue").call(auth)
 	if resp.Error != nil {
 		return 0, errors.New(resp.Error.Message)
 	}
@@ -155,8 +222,12 @@ func (c *Client) IsBlue(hash string) (int, error) {
 }
 
 func (c *Client) GetFees(hash string) (uint64, error) {
+	return c.getFees(hash, c.main)
+}
+
+func (c *Client) getFees(hash string, auth *config.Rpc) (uint64, error) {
 	params := []interface{}{hash}
-	resp := NewReqeust(params).SetMethod("getFees").call(c.rpcAuth)
+	resp := NewReqeust(params).SetMethod("getFees").call(auth)
 	if resp.Error != nil {
 		return 0, errors.New(resp.Error.Message)
 	}
@@ -166,7 +237,7 @@ func (c *Client) GetFees(hash string) (uint64, error) {
 
 func (c *Client) GetPeerInfo() ([]PeerInfo, error) {
 	var params []interface{}
-	resp := NewReqeust(params).SetMethod("getPeerInfo").call(c.rpcAuth)
+	resp := NewReqeust(params).SetMethod("getPeerInfo").call(c.main)
 	if resp.Error != nil {
 		return nil, errors.New(resp.Error.Message)
 	}
@@ -177,8 +248,16 @@ func (c *Client) GetPeerInfo() ([]PeerInfo, error) {
 	return rs, nil
 }
 
+func (c *Client) getPeerInfo(auth *config.Rpc) ([]PeerInfo, error) {
+	return c.getPeerInfo(auth)
+}
+
 func (c *Client) GetCoins() ([]types.Coin, error) {
-	resp := NewReqeust(nil).SetMethod("getTokenInfo").call(c.rpcAuth)
+	return c.getCoins(c.main)
+}
+
+func (c *Client) getCoins(auth *config.Rpc) ([]types.Coin, error) {
+	resp := NewReqeust(nil).SetMethod("getTokenInfo").call(auth)
 	coins := []types.Coin{}
 	if resp.Error != nil {
 		return coins, errors.New(resp.Error.Message)

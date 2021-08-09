@@ -26,7 +26,7 @@ type transactionData struct {
 }
 
 func (s *Storage) Set10GenesisUTXO(rpcBlock *rpc.Block) error {
-	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue)
+	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue, rpcBlock.Hash)
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (s *Storage) Set10GenesisUTXO(rpcBlock *rpc.Block) error {
 
 func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
 	block := s.crateBlock(rpcBlock)
-	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue)
+	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue, rpcBlock.Hash)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
 }
 
 func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order, height uint64, color int) error {
-	txData, err := s.createTransactions([]rpc.Transaction{*rpcTx}, order, height, color)
+	txData, err := s.createTransactions([]rpc.Transaction{*rpcTx}, order, height, color, "")
 	if err != nil {
 		return err
 	}
@@ -63,47 +63,14 @@ func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order, height uint64, 
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if err := s.db.UpdateTransactionDatas(txData.Transactions, txData.Vins, txData.Vouts, txData.SpentedVouts, txData.Transfers); err != nil {
-		return err
-	}
-	// 删除Mem交易
-	for _, tx := range txData.Transactions {
-		if tx.Stat != stat.TX_Memry {
-			tx, _ := s.db.GetTransaction(tx.TxId, "")
-			if tx.TxId != "" && tx.Stat == stat.TX_Memry {
-				s.db.DeleteTransaction(tx)
-			}
-		}
-	}
-
-	// 删除历史余留Mem交易
-	memTxs, err := s.db.QueryMemTransaction()
-	for _, memTx := range memTxs {
-		txs, _ := s.db.QueryTransactions(memTx.TxId)
-		if len(txs) > 1 {
-			for _, tx := range txs {
-				if tx.Stat != stat.TX_Memry {
-					s.db.DeleteTransaction(&memTx)
-				}
-			}
-		}
-	}
-	return nil
+	return s.db.UpdateTransactionDatas(txData.Transactions, txData.Vins, txData.Vouts, txData.SpentedVouts, txData.Transfers)
 }
 
 func (s *Storage) UpdateTransactionStat(txId string, stat stat.TxStat) error {
-	txs, err := s.db.QueryTransactions(txId)
-	if err != nil {
-		return err
-	}
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	for _, tx := range txs {
-		tx.Stat = stat
-		s.db.UpdateTransactionStat(&tx)
-	}
-	return nil
+	return s.db.UpdateTransactionStat(txId, stat)
 }
 
 func (s *Storage) crateBlock(rpcBlock *rpc.Block) *types.Block {
@@ -141,7 +108,7 @@ func (s *Storage) crateBlock(rpcBlock *rpc.Block) *types.Block {
 	return block
 }
 
-func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, height uint64, color int) (*transactionData, error) {
+func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, height uint64, color int, blockHash string) (*transactionData, error) {
 	txs := []*types.Transaction{}
 	vins := []*types.Vin{}
 	vouts := []*types.Vout{}
@@ -302,6 +269,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 		for _, change := range addrChanges {
 			transfers = append(transfers, &types.Transfer{
 				TxId:          tx.TxId,
+				BlockHash:     blockHash,
 				Address:       change.Address,
 				Confirmations: tx.Confirmations,
 				CoinId:        change.CoinID,

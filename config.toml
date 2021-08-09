@@ -1,4 +1,8 @@
-[rpc]
+[[rpcs]]
+host="http://127.0.0.1:1234"
+admin="admin"
+password="123"
+[[rpcs]]
 host="http://127.0.0.1:1234"
 admin="admin"
 password="123"
@@ -8,9 +12,9 @@ password="123"
 # mysql | sqlserver
 dbtype="mysql"
 user="root"
-password="kahfxwxsx113"
+password="111111"
 address="127.0.0.1:3306"
-dbname="sync"
+dbname="qitmeer_testnet"
 
 [log]
 # console=12 | file=11
@@ -28,9 +32,9 @@ port=""
 to=[""]
 
 [verify]
-utxo=true
-fees=true
-interval=1
+utxo=false
+fees=false
+interval=10
 version="0.10"
 
 [resources]

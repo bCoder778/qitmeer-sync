@@ -256,25 +256,35 @@ func updateTransactions(sess *xorm.Session, txs []*types.Transaction) error {
 	// 更新transaction
 	for _, tx := range txs {
 		queryTx := &types.Transaction{}
-		if ok, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).Get(queryTx); err != nil {
+		if ok, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, "").Get(queryTx); err != nil {
 			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
-		} else if ok {
-			if queryTx.Stat != stat.TX_Confirmed {
-				if _, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).
-					Cols(`block_order`, `tx_hash`, `size`, `version`, `locktime`,
-						`timestamp`, `expire`, `confirmations`, `txsvaild`, `is_coinbase`,
-						`vins`, `vouts`, `total_vin`, `total_vout`, `fees`, `duplicate`,
-						`stat`).Update(tx); err != nil {
-					return err
+		}else if ok{
+			if _, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, "").
+				Cols(`block_order`, `block_hash`, `tx_hash`, `size`, `version`, `locktime`,
+					`timestamp`, `expire`, `confirmations`, `txsvaild`, `is_coinbase`,
+					`vins`, `vouts`, `total_vin`, `total_vout`, `fees`, `duplicate`,
+					`stat`).Update(tx); err != nil {
+				return err
+			}
+		}else{
+			if ok, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).Get(queryTx); err != nil {
+				return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
+			} else if ok {
+				if queryTx.Stat != stat.TX_Confirmed {
+					if _, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).
+						Cols(`block_order`, `tx_hash`, `size`, `version`, `locktime`,
+							`timestamp`, `expire`, `confirmations`, `txsvaild`, `is_coinbase`,
+							`vins`, `vouts`, `total_vin`, `total_vout`, `fees`, `duplicate`,
+							`stat`).Update(tx); err != nil {
+						return err
+					}
+				}
+			} else {
+				if _, err := sess.Insert(tx); err != nil {
+					return fmt.Errorf("insert transction %s error, %s", tx.TxId, err)
 				}
 			}
-
-		} else {
-			if _, err := sess.Insert(tx); err != nil {
-				return fmt.Errorf("insert transction %s error, %s", tx.TxId, err)
-			}
 		}
-
 	}
 	return nil
 }
@@ -348,38 +358,40 @@ func (d *DB) UpdateCoin(coins []types.Coin) error {
 	return nil
 }
 
-func (d *DB) UpdateTransactionStat(tx *types.Transaction) error {
+func (d *DB) UpdateTransactionStat(txId string, txStat stat.TxStat) error {
 	sess := d.engine.NewSession()
 	defer sess.Close()
 
 	if err := sess.Begin(); err != nil {
 		return fmt.Errorf("failed to seesion begin, %s", err.Error())
 	}
-	if _, err := sess.Where("tx_id = ?", tx.TxId).
+	if _, err := sess.Where("tx_id = ?", txId).
 		Cols(`stat`).
-		Update(tx); err != nil {
+		Update(&types.Transaction{Stat:txStat}); err != nil {
 		return err
 	}
 
-	if _, err := sess.Where("tx_id = ?", tx.TxId).
+	if _, err := sess.Where("tx_id = ?", txId).
 		Cols(`stat`).
-		Update(&types.Vin{TxId: tx.TxId, Stat: tx.Stat}); err != nil {
+		Update(&types.Vin{TxId: txId, Stat: txStat}); err != nil {
 		return err
 	}
-	if _, err := sess.Where("tx_id = ?", tx.TxId).
+	if _, err := sess.Where("tx_id = ?", txId).
 		Cols(`stat`).
-		Update(&types.Vout{TxId: tx.TxId, Stat: tx.Stat}); err != nil {
+		Update(&types.Vout{TxId: txId, Stat: txStat}); err != nil {
 		return err
 	}
-	if _, err := sess.Where("tx_id = ?", tx.TxId).
+	if _, err := sess.Where("tx_id = ?", txId).
 		Cols(`stat`).
-		Update(&types.Transfer{TxId: tx.TxId, Stat: tx.Stat}); err != nil {
+		Update(&types.Transfer{TxId: txId, Stat: txStat}); err != nil {
 		return err
 	}
-	if _, err := sess.Where("spent_tx = ?", tx.TxId).
-		Cols("spent_tx").
-		Update(&types.Vout{SpentTx: ""}); err != nil {
-		return err
+	if txStat == stat.TX_Failed{
+		if _, err := sess.Where("spent_tx = ?", txId).
+			Cols("spent_tx").
+			Update(&types.Vout{SpentTx: ""}); err != nil {
+			return err
+		}
 	}
 	if err := sess.Commit(); err != nil {
 		return fmt.Errorf("failed to seesion coimmit, %s", err.Error())
@@ -387,8 +399,3 @@ func (d *DB) UpdateTransactionStat(tx *types.Transaction) error {
 	return nil
 }
 
-func (d *DB) DeleteTransaction(tx *types.Transaction) error {
-	var deleted types.Transaction
-	_, err := d.engine.Id(tx.Id).Delete(&deleted)
-	return err
-}
