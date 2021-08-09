@@ -302,12 +302,12 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 		for _, change := range addrChanges {
 			transfers = append(transfers, &types.Transfer{
 				TxId:          tx.TxId,
-				BlockHash:     rpcTx.BlockHash,
 				Address:       change.Address,
 				Confirmations: tx.Confirmations,
 				CoinId:        change.CoinID,
 				Txsvaild:      tx.Txsvaild,
 				IsCoinbase:    tx.IsCoinbase,
+				IsBlue: 	   color == 1,
 				Change:        change.Change,
 				Timestamp:     tx.Timestamp,
 				Fees:          tx.Fees,

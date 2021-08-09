@@ -287,8 +287,8 @@ func updateTransfers(sess *xorm.Session, transfers []*types.Transfer) error {
 			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
 		} else if ok {
 			if queryTransfer.Stat != stat.TX_Confirmed {
-				if _, err := sess.Where("tx_id = ? and address = ? and coin_id = ?", tras.TxId, tras.Address, tras.CoinId).
-					Cols(`change`, `fees`, `confirmations`, `txsvaild`, `stat`).Update(tras); err != nil {
+				if _, err := sess.Where("tx_id = ? and address = ? and coin_id = ? ", tras.TxId, tras.Address, tras.CoinId).
+					Cols(`change`, `fees`, `confirmations`, `txsvaild`, `is_blue`,  `stat`).Update(tras); err != nil {
 					return err
 				}
 			}
