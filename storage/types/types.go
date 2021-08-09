@@ -106,6 +106,8 @@ type Vout struct {
 	Address       string        `xorm:"varchar(35) index" json:"address"`
 	Amount        uint64        `xorm:"bigint" json:"amount"`
 	CoinId        string        `xorm:"varchar(30)" json:"coinid"`
+	IsCoinbase    bool `xorm:"Bool" json:"iscoinbase"`
+	IsBlue        bool `xorm:"Bool" json:"isblue"`
 	ScriptPubKey  *ScriptPubKey `xorm:"json" json:"scriptpubkey"`
 	SpentTx       string        `xorm:"varchar(64)" json:"spenttx"`
 	Confirmations uint64        `xorm:"bigint" json:"confirmations"`
