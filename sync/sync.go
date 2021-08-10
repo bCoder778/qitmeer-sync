@@ -97,7 +97,7 @@ func (qs *QitmeerSync) syncBlock() {
 }
 
 func (qs *QitmeerSync) updateUnconfirmedBlock() {
-	ticker1 := time.NewTicker(time.Second * 10)
+	ticker1 := time.NewTicker(time.Second * 60 * 1)
 	ticker2 := time.NewTicker(time.Second * 60 * 5)
 	defer func() {
 		ticker1.Stop()
