@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"github.com/bCoder778/log"
 	"github.com/bCoder778/qitmeer-sync/config"
 	"github.com/bCoder778/qitmeer-sync/storage/types"
 	"github.com/bCoder778/qitmeer-sync/verify/stat"
@@ -31,6 +32,7 @@ func (c *Client)TransactionStat(txid string, timestamp int64)stat.TxStat{
 	for _, auth := range c.rpcAuth{
 		tx, err := c.getTransaction(txid, auth)
 		if err != nil && isNotExist(err){
+			log.Errorf("%s, %s", auth.Host, err.Error())
 			continue
 		}else{
 			if tx.Confirmations >= stat.Tx_Confirmed_Value{
