@@ -21,6 +21,7 @@ type ISyncInfo interface {
 	LastId() uint64
 	UnconfirmedOrders() []uint64
 	UnconfirmedIds() []uint64
+	UnconfirmedIdsByCount(count int) []uint64
 	LastUnconfirmedOrder() uint64
 }
 

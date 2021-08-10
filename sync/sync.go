@@ -97,18 +97,24 @@ func (qs *QitmeerSync) syncBlock() {
 }
 
 func (qs *QitmeerSync) updateUnconfirmedBlock() {
-	ticker := time.NewTicker(time.Second * 60 * 5)
+	ticker1 := time.NewTicker(time.Second * 10)
+	ticker2 := time.NewTicker(time.Second * 60 * 5)
 	defer func() {
-		ticker.Stop()
+		ticker1.Stop()
+		ticker2.Stop()
 		qs.wg.Done()
 	}()
+
 	qs.initUncfmBlockCh()
 	go qs.saveUnconfirmedBlock()
 
 	for {
 		select {
-		case <-ticker.C:
-			log.Info("Start request unconfirmed block")
+		case <-ticker1.C:
+			log.Info("Start request unconfirmed block1")
+			qs.requestUnconfirmedBlockByCount(30)
+		case <-ticker2.C:
+			log.Info("Start request unconfirmed block2")
 			qs.requestUnconfirmedBlock()
 		case <-qs.interupt:
 			log.Info("Shutdown update unconfirmed block")
@@ -259,6 +265,28 @@ func (qs *QitmeerSync) saveBlock(group *sync.WaitGroup) {
 			return
 		}
 	}
+}
+
+func (qs *QitmeerSync) requestUnconfirmedBlockByCount(count int) {
+	ids := qs.storage.UnconfirmedIdsByCount(count)
+	for _, id := range ids {
+		if id != 0 {
+			select {
+			case <-qs.interupt:
+				log.Info("Shutdown request unconfirmed block")
+				return
+			default:
+				block, err := qs.getBlockById(id)
+				if err != nil {
+					log.Debugf("Request block id %d failed! %s", id, err.Error())
+					time.Sleep(time.Second * waitBlockTime)
+					continue
+				}
+				qs.uncfmBlockCh <- block
+			}
+		}
+	}
+	log.Infof("Request unconfirmed block end")
 }
 
 func (qs *QitmeerSync) requestUnconfirmedBlock() {

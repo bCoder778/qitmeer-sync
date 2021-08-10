@@ -20,6 +20,11 @@ func (s *Storage) UnconfirmedIds() []uint64 {
 	return ids
 }
 
+func (s *Storage) UnconfirmedIdsByCount(count int) []uint64 {
+	ids, _ := s.db.QueryUnConfirmedIdsByCount(count)
+	return ids
+}
+
 func (s *Storage) LastUnconfirmedOrder() uint64 {
 	order, _ := s.db.GetLastUnconfirmedOrder()
 	return order

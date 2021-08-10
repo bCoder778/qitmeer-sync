@@ -42,6 +42,7 @@ type IQuery interface {
 	QueryMemTransaction() ([]types.Transaction, error)
 	QueryUnConfirmedOrders() ([]uint64, error)
 	QueryUnConfirmedIds() ([]uint64, error)
+	QueryUnConfirmedIdsByCount(count int)([]uint64, error)
 	QueryTransactions(txId string) ([]types.Transaction, error)
 }
 
