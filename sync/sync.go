@@ -208,7 +208,11 @@ func (qs *QitmeerSync) updateCoins() {
 func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 	defer group.Done()
 
-	block0, _ := qs.getBlockById(0)
+	block0, err := qs.getBlockById(0)
+	if err 	!= nil{
+		time.Sleep(time.Second * waitBlockTime)
+		return
+	}
 	qs.storage.Set10GenesisUTXO(block0)
 
 	start := qs.storage.LastId()
@@ -337,8 +341,8 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction() {
 			return
 		default:
 			log.Infof("Get unconfirmed transaction %s", tx.TxId)
-			stat := qs.rpc.TransactionStat(tx.TxId, tx.Timestamp)
-			qs.storage.UpdateTransactionStat(tx.TxId, stat)
+			stat, _, confirmations := qs.rpc.TransactionStat(tx.TxId, tx.Timestamp)
+			qs.storage.UpdateTransactionStat(tx.TxId, confirmations, stat )
 		}
 	}
 	log.Infof("Request unconfirmed transaction end")

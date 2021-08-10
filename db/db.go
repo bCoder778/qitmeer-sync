@@ -22,7 +22,7 @@ type IUpdate interface {
 	UpdateTransactionDatas(txs []*types.Transaction, vins []*types.Vin, vouts []*types.Vout, spentedVouts []*types.Vout, transfers []*types.Transfer) error
 
 	UpdateBlock(block *types.Block) error
-	UpdateTransactionStat(txId string, stat stat.TxStat) error
+	UpdateTransactionStat(txId string, confirmations uint64, stat stat.TxStat) error
 	UpdateCoin(coins []types.Coin) error
 }
 

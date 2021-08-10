@@ -66,11 +66,11 @@ func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order, height uint64, 
 	return s.db.UpdateTransactionDatas(txData.Transactions, txData.Vins, txData.Vouts, txData.SpentedVouts, txData.Transfers)
 }
 
-func (s *Storage) UpdateTransactionStat(txId string, stat stat.TxStat) error {
+func (s *Storage) UpdateTransactionStat(txId string, confirmations uint64, stat stat.TxStat) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	return s.db.UpdateTransactionStat(txId, stat)
+	return s.db.UpdateTransactionStat(txId,  confirmations, stat)
 }
 
 func (s *Storage) crateBlock(rpcBlock *rpc.Block) *types.Block {

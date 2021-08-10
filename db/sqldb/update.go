@@ -358,7 +358,7 @@ func (d *DB) UpdateCoin(coins []types.Coin) error {
 	return nil
 }
 
-func (d *DB) UpdateTransactionStat(txId string, txStat stat.TxStat) error {
+func (d *DB) UpdateTransactionStat(txId string, confirmations uint64, txStat stat.TxStat) error {
 	sess := d.engine.NewSession()
 	defer sess.Close()
 
@@ -366,24 +366,24 @@ func (d *DB) UpdateTransactionStat(txId string, txStat stat.TxStat) error {
 		return fmt.Errorf("failed to seesion begin, %s", err.Error())
 	}
 	if _, err := sess.Where("tx_id = ?", txId).
-		Cols(`stat`).
-		Update(&types.Transaction{Stat:txStat}); err != nil {
+		Cols(`stat`, `confirmations`).
+		Update(&types.Transaction{Stat:txStat, Confirmations: confirmations}); err != nil {
 		return err
 	}
 
 	if _, err := sess.Where("tx_id = ?", txId).
-		Cols(`stat`).
-		Update(&types.Vin{TxId: txId, Stat: txStat}); err != nil {
+		Cols(`stat`,  `confirmations`).
+		Update(&types.Vin{TxId: txId, Stat: txStat, Confirmations: confirmations}); err != nil {
 		return err
 	}
 	if _, err := sess.Where("tx_id = ?", txId).
-		Cols(`stat`).
-		Update(&types.Vout{TxId: txId, Stat: txStat}); err != nil {
+		Cols(`stat`,  `confirmations`).
+		Update(&types.Vout{TxId: txId, Stat: txStat, Confirmations: confirmations}); err != nil {
 		return err
 	}
 	if _, err := sess.Where("tx_id = ?", txId).
-		Cols(`stat`).
-		Update(&types.Transfer{TxId: txId, Stat: txStat}); err != nil {
+		Cols(`stat`,  `confirmations`).
+		Update(&types.Transfer{TxId: txId, Stat: txStat, Confirmations: confirmations}); err != nil {
 		return err
 	}
 	if txStat == stat.TX_Failed{

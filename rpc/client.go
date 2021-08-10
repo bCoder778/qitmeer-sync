@@ -25,18 +25,21 @@ func NewClient(auth []*config.Rpc) *Client {
 	return &Client{rpcAuth: auth, main: auth[0]}
 }
 
-func (c *Client)TransactionStat(txid string, timestamp int64)stat.TxStat{
+func (c *Client)TransactionStat(txid string, timestamp int64)(stat.TxStat, string, uint64){
 	exist := false
 	notConfirmed := false
 	inBlock := false
+	blockHash := ""
+	var confirmations uint64 = 0
 	for _, auth := range c.rpcAuth{
 		tx, err := c.getTransaction(txid, auth)
 		if err != nil && isNotExist(err){
 			log.Errorf("%s, %s", auth.Host, err.Error())
 			continue
 		}else{
+			exist = true
 			if tx.Confirmations >= stat.Tx_Confirmed_Value{
-				return  stat.TX_Confirmed
+				return  stat.TX_Confirmed, tx.BlockHash, tx.Confirmations
 			}
 			if tx.Confirmations < 1{
 				notConfirmed = true
@@ -44,21 +47,22 @@ func (c *Client)TransactionStat(txid string, timestamp int64)stat.TxStat{
 			if tx.BlockHash != ""{
 				inBlock = true
 			}
-			exist = true
+			blockHash = tx.BlockHash
+			confirmations = tx.Confirmations
 		}
 	}
 	if !exist{
 		if time.Now().Unix() - timestamp > 60 * 60 {
-			return stat.TX_Failed
+			return stat.TX_Failed,"", 0
 		}
-		return stat.TX_Unconfirmed
+		return stat.TX_Unconfirmed, blockHash, confirmations
 	}else{
 		if notConfirmed{
-			return stat.TX_Unconfirmed
+			return stat.TX_Unconfirmed, blockHash, confirmations
 		}else if inBlock{
-			return stat.TX_Confirmed
+			return stat.TX_Confirmed, blockHash, confirmations
 		}else{
-			return stat.TX_Memry
+			return stat.TX_Memry, "", 0
 		}
 	}
 }
