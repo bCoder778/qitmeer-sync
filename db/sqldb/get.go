@@ -1,6 +1,7 @@
 package sqldb
 
 import (
+	"errors"
 	"fmt"
 	"github.com/bCoder778/qitmeer-sync/storage/types"
 	"github.com/bCoder778/qitmeer-sync/verify/stat"
@@ -8,7 +9,10 @@ import (
 
 func (d *DB) GetTransaction(txId string, blockHash string) (*types.Transaction, error) {
 	tx := &types.Transaction{}
-	_, err := d.engine.Table(new(types.Transaction)).Where("tx_id = ? and block_hash = ?", txId, blockHash).Get(tx)
+	ok, err := d.engine.Table(new(types.Transaction)).Where("tx_id = ? and block_hash = ?", txId, blockHash).Get(tx)
+	if !ok{
+		return nil, errors.New("not found")
+	}
 	return tx, err
 }
 

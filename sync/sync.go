@@ -113,10 +113,10 @@ func (qs *QitmeerSync) updateUnconfirmedBlock() {
 	for {
 		select {
 		case <-ticker1.C:
-			log.Info("Start request unconfirmed block1")
+			log.Info("Start request unconfirmed block by count")
 			qs.requestUnconfirmedBlockByCount(30)
 		case <-ticker2.C:
-			log.Info("Start request unconfirmed block2")
+			log.Info("Start request unconfirmed block")
 			qs.requestUnconfirmedBlock()
 		case <-qs.interupt:
 			log.Info("Shutdown update unconfirmed block")

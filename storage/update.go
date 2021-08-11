@@ -124,6 +124,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 		if isTransfer{
 			status = stat.TxStat(rpcTx.Stat)
 		}
+
 		var totalVin, totalVout, fees uint64
 		for index, vin := range rpcTx.Vin {
 			var (
