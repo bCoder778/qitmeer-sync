@@ -56,7 +56,9 @@ type Transaction struct {
 	Duplicate     bool      `json:"duplicate"`
 	BlockHash     string    `json:"blockhash"`
 	BlockOrder    uint64    `json:"blockorder"`
+	BlockHeight    uint64   `json:"blockheight"`
 	Size          int       `json:"size"`
+	Stat          int
 }
 
 type Vin struct {

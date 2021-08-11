@@ -256,32 +256,44 @@ func updateTransactions(sess *xorm.Session, txs []*types.Transaction) error {
 	// 更新transaction
 	for _, tx := range txs {
 		queryTx := &types.Transaction{}
-		if ok, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, "").Get(queryTx); err != nil {
-			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
-		}else if ok{
-			if _, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, "").
-				Cols(`block_order`, `block_hash`, `tx_hash`, `size`, `version`, `locktime`,
-					`timestamp`, `expire`, `confirmations`, `txsvaild`, `is_coinbase`,
-					`vins`, `vouts`, `total_vin`, `total_vout`, `fees`, `duplicate`,
-					`stat`).Update(tx); err != nil {
-				return err
-			}
-		}else{
-			if ok, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).Get(queryTx); err != nil {
+
+
+		if tx.BlockHash == "" {
+			if ok, err := sess.Where("tx_id = ?", tx.TxId).Get(queryTx); err != nil {
 				return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
 			} else if ok {
-				if queryTx.Stat != stat.TX_Confirmed {
+				return nil
+			} else {
+				if _, err := sess.Insert(tx); err != nil {
+					return fmt.Errorf("insert transction %s error, %s", tx.TxId, err)
+				}
+			}
+		}else{
+			if ok, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, "").Get(queryTx); err != nil {
+				return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
+			} else if ok {
+				if _, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, "").
+					Cols(`block_order`, `block_hash`, `tx_hash`, `size`, `version`, `locktime`,
+						`timestamp`, `expire`, `confirmations`, `txsvaild`, `is_coinbase`,
+						`vins`, `vouts`, `total_vin`, `total_vout`, `fees`, `duplicate`,
+						`stat`).Update(tx); err != nil {
+					return err
+				}
+			} else {
+				if ok, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).Get(queryTx); err != nil {
+					return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
+				} else if ok {
 					if _, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).
-						Cols(`block_order`, `tx_hash`, `size`, `version`, `locktime`,
+						Cols(`block_order`,  `tx_hash`, `size`, `version`, `locktime`,
 							`timestamp`, `expire`, `confirmations`, `txsvaild`, `is_coinbase`,
 							`vins`, `vouts`, `total_vin`, `total_vout`, `fees`, `duplicate`,
 							`stat`).Update(tx); err != nil {
 						return err
 					}
-				}
-			} else {
-				if _, err := sess.Insert(tx); err != nil {
-					return fmt.Errorf("insert transction %s error, %s", tx.TxId, err)
+				} else {
+					if _, err := sess.Insert(tx); err != nil {
+						return fmt.Errorf("insert transction %s error, %s", tx.TxId, err)
+					}
 				}
 			}
 		}

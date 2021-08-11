@@ -26,7 +26,7 @@ type transactionData struct {
 }
 
 func (s *Storage) Set10GenesisUTXO(rpcBlock *rpc.Block) error {
-	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue, rpcBlock.Hash)
+	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue, rpcBlock.Hash, false)
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (s *Storage) Set10GenesisUTXO(rpcBlock *rpc.Block) error {
 
 func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
 	block := s.crateBlock(rpcBlock)
-	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue, rpcBlock.Hash)
+	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue, rpcBlock.Hash, false)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
 }
 
 func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order, height uint64, color int) error {
-	txData, err := s.createTransactions([]rpc.Transaction{*rpcTx}, order, height, color, "")
+	txData, err := s.createTransactions([]rpc.Transaction{*rpcTx}, order, height, color, rpcTx.BlockHash, true)
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func (s *Storage) crateBlock(rpcBlock *rpc.Block) *types.Block {
 	return block
 }
 
-func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, height uint64, color int, blockHash string) (*transactionData, error) {
+func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, height uint64, color int, blockHash string, isTransfer bool) (*transactionData, error) {
 	txs := []*types.Transaction{}
 	vins := []*types.Vin{}
 	vouts := []*types.Vout{}
@@ -121,6 +121,9 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 		isCoinbase := s.verify.IsCoinBase(&rpcTx)
 		addressInOut := NewAddressInOutMap()
 		status := s.verify.TransactionStat(&rpcTx, color)
+		if isTransfer{
+			status = stat.TxStat(rpcTx.Stat)
+		}
 		var totalVin, totalVout, fees uint64
 		for index, vin := range rpcTx.Vin {
 			var (

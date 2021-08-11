@@ -25,12 +25,10 @@ func NewClient(auth []*config.Rpc) *Client {
 	return &Client{rpcAuth: auth, main: auth[0]}
 }
 
-func (c *Client)TransactionStat(txid string, timestamp int64)(stat.TxStat, string, uint64){
+func (c *Client)TransactionStat(txid string, timestamp int64)(stat.TxStat){
 	exist := false
 	notConfirmed := false
 	inBlock := false
-	blockHash := ""
-	var confirmations uint64 = 0
 	for _, auth := range c.rpcAuth{
 		tx, err := c.getTransaction(txid, auth)
 		if err != nil && isNotExist(err){
@@ -40,30 +38,28 @@ func (c *Client)TransactionStat(txid string, timestamp int64)(stat.TxStat, strin
 		}else{
 			exist = true
 			if tx.Confirmations >= stat.Tx_Confirmed_Value{
-				return  stat.TX_Confirmed, tx.BlockHash, tx.Confirmations
+				return  stat.TX_Confirmed
 			}
-			if tx.Confirmations < 1{
+			if tx.Confirmations < 2{
 				notConfirmed = true
 			}
 			if tx.BlockHash != ""{
 				inBlock = true
 			}
-			blockHash = tx.BlockHash
-			confirmations = tx.Confirmations
 		}
 	}
 	if !exist{
 		if time.Now().Unix() - timestamp > 60 * 60 {
-			return stat.TX_Failed,"", 0
+			return stat.TX_Failed
 		}
-		return stat.TX_Unconfirmed, blockHash, confirmations
+		return stat.TX_Unconfirmed
 	}else{
 		if notConfirmed{
-			return stat.TX_Unconfirmed, blockHash, confirmations
+			return stat.TX_Unconfirmed
 		}else if inBlock{
-			return stat.TX_Confirmed, blockHash, confirmations
+			return stat.TX_Confirmed
 		}else{
-			return stat.TX_Memry, "", 0
+			return stat.TX_Memry
 		}
 	}
 }
@@ -94,10 +90,10 @@ func (c *Client) getBlock(h uint64, auth *config.Rpc) (*Block, error) {
 }
 
 func (c *Client) GetBlockByHash(hash string) (*Block, error) {
-	return c.geetBlockByHash(hash, c.main)
+	return c.getBlockByHash(hash, c.main)
 }
 
-func (c *Client) geetBlockByHash(hash string, auth *config.Rpc) (*Block, error) {
+func (c *Client) getBlockByHash(hash string, auth *config.Rpc) (*Block, error) {
 	params := []interface{}{hash, true}
 	resp := NewReqeust(params).SetMethod("getBlock").call(auth)
 	blk := new(Block)
@@ -163,6 +159,7 @@ func (c *Client) GetTransaction(txId string) (*Transaction, error) {
 	return c.getTransaction(txId, c.main)
 }
 
+
 func (c *Client) getTransaction(txId string, auth *config.Rpc) (*Transaction, error) {
 	params := []interface{}{txId, true}
 	resp := NewReqeust(params).SetMethod("getRawTransaction").call(auth)
@@ -174,6 +171,34 @@ func (c *Client) getTransaction(txId string, auth *config.Rpc) (*Transaction, er
 		return nil, err
 	}
 	return rs, nil
+}
+
+func (c *Client) GetTransactionByBlockHash(txId string, hash string) (*Transaction, error) {
+	return c.getTransactionByBlockHash(txId, hash, c.main)
+}
+
+
+
+func (c *Client) getTransactionByBlockHash(txId string, hash string, auth *config.Rpc) (*Transaction, error) {
+	if hash == ""{
+		tx, err := c.getTransaction(txId, auth)
+		if err != nil{
+			return nil, err
+		}
+		hash = tx.BlockHash
+	}
+	block, err := c.getBlockByHash(hash, auth)
+	if err != nil{
+		return nil, err
+	}
+	for _, tx := range block.Transactions{
+		if tx.Txid == txId{
+			tx.BlockOrder = block.Order
+			tx.BlockHeight = block.Height
+			return &tx, nil
+		}
+	}
+	return nil, errors.New("not found")
 }
 
 func (c *Client) GetMemoryPool() ([]string, error) {

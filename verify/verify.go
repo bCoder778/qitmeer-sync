@@ -94,7 +94,6 @@ func (qv *QitmeerVerify) TransactionStat(tx *rpc.Transaction, color int) stat.Tx
 			return stat.TX_Confirmed
 		}
 	}
-	return stat.TX_Unconfirmed
 }
 
 func (qv *QitmeerVerify) IsCoinBase(rpcTx *rpc.Transaction) bool {

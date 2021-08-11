@@ -7,6 +7,7 @@ import (
 	"github.com/bCoder778/qitmeer-sync/rpc"
 	"github.com/bCoder778/qitmeer-sync/storage"
 	"github.com/bCoder778/qitmeer-sync/verify"
+	"github.com/bCoder778/qitmeer-sync/verify/stat"
 	"strings"
 	"sync"
 	"time"
@@ -23,6 +24,7 @@ type QitmeerSync struct {
 	reBlockSync      chan struct{}
 	blockCh          chan *rpc.Block
 	uncfmBlockCh     chan *rpc.Block
+	uncfmTxCh   	 chan *rpc.Transaction
 	interupt         chan struct{}
 	wg               sync.WaitGroup
 	verifyFiledCount int
@@ -129,6 +131,8 @@ func (qs *QitmeerSync) updateUnconfirmedTransaction() {
 		ticker.Stop()
 		qs.wg.Done()
 	}()
+	qs.initUncfmTransactionCh()
+	go qs.saveUnconfirmedTransaction()
 
 	for {
 		select {
@@ -172,6 +176,7 @@ func (qs *QitmeerSync) syncTxPool() {
 						log.Warnf("Request getTransaction rpc failed! err:%v", err)
 						continue
 					}
+					tx.Stat = int(stat.TX_Memry)
 					if err := qs.storage.SaveTransaction(tx, 0, 0, 1); err != nil {
 						//log.Mailf(config.Setting.Email.Title, "Sync tx pool to save transaction %v failed! err:%v", tx, err)
 						continue
@@ -344,11 +349,48 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction() {
 			return
 		default:
 			log.Infof("Get unconfirmed transaction %s", tx.TxId)
-			stat, _, confirmations := qs.rpc.TransactionStat(tx.TxId, tx.Timestamp)
-			qs.storage.UpdateTransactionStat(tx.TxId, confirmations, stat )
+			/*stat, _, confirmations := qs.rpc.TransactionStat(tx.TxId, tx.Timestamp)
+			qs.storage.UpdateTransactionStat(tx.TxId, confirmations, stat )*/
+			if tx.Stat != stat.TX_Confirmed{
+				txStat :=  qs.rpc.TransactionStat(tx.TxId, tx.Timestamp)
+				if txStat == stat.TX_Failed{
+					log.Infof("update tx  %s failed", tx.TxId)
+					if err := qs.storage.UpdateTransactionStat(tx.TxId,  0, stat.TX_Failed); err != nil {
+						log.Mailf("Failed to update transaction %s stat to failed!err %v", tx.TxId, err)
+					}
+					continue
+				}
+				tx.Stat = txStat
+			}
+
+			rpcTx, err := qs.rpc.GetTransactionByBlockHash(tx.TxId, tx.BlockHash)
+			if err != nil{
+				continue
+			}
+			rpcTx.Stat = int(tx.Stat)
+			qs.uncfmTxCh <- rpcTx
 		}
 	}
 	log.Infof("Request unconfirmed transaction end")
+}
+
+
+func (qs *QitmeerSync) saveUnconfirmedTransaction() {
+	for tx := range qs.uncfmTxCh {
+		select {
+		case <-qs.interupt:
+			log.Info("Shutdown save unconfirmed transaction")
+			return
+		default:
+			log.Infof("Save unconfirmed transaction in block %d %s", tx.BlockOrder, tx.BlockHash)
+			if err := qs.storage.SaveTransaction(tx, tx.BlockOrder, tx.BlockHeight, 1); err != nil {
+				log.Errorf(config.Setting.Email.Title, "Failed to save unconfirmed transaction block %d, err:%v", tx.BlockOrder, err)
+			} else {
+				log.Infof("Save unconfirmed transaction block %d", tx.BlockOrder)
+			}
+		}
+	}
+	log.Infof("Save unconfirmed transaction end")
 }
 
 func (qs *QitmeerSync) initBlockCh() {
@@ -363,6 +405,13 @@ func (qs *QitmeerSync) initUncfmBlockCh() {
 		close(qs.uncfmBlockCh)
 	}
 	qs.uncfmBlockCh = make(chan *rpc.Block, 1000)
+}
+
+func (qs *QitmeerSync) initUncfmTransactionCh() {
+	if qs.uncfmTxCh != nil {
+		close(qs.uncfmTxCh)
+	}
+	qs.uncfmTxCh = make(chan *rpc.Transaction, 100)
 }
 
 func isExist(err error) bool {
