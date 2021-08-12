@@ -34,10 +34,11 @@ func (c *Client)TransactionStat(txid string, timestamp int64)(stat.TxStat){
 		if err != nil {
 			notConfirmed = true
 			if isNotExist(err){
-				log.Errorf("%s, %s", auth.Host, err.Error())
+				log.Warnf("%s, %s", auth.Host, err.Error())
 				continue
 			}
 		}else{
+			log.Debugf("%s, confirmations = %d", auth.Host, tx.Confirmations)
 			exist = true
 			if tx.Confirmations >= stat.Tx_Confirmed_Value{
 				return  stat.TX_Confirmed
