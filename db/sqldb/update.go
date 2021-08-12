@@ -211,7 +211,7 @@ func updateVouts(sess *xorm.Session, vouts []*types.Vout) error {
 
 	for _, vout := range vouts {
 		queryVout := &types.Vout{}
-		cols := []string{`order`, `height`, `timestamp`, `address`, `script_pub_key`, `vout`, "confirmations", `lock`}
+		cols := []string{`order`, `height`, `timestamp`, `address`, `script_pub_key`, `is_blue`,`vout`, "confirmations", `lock`}
 		if ok, err := sess.Where("tx_id = ?  and number = ?", vout.TxId, vout.Number).Get(queryVout); err != nil {
 			return fmt.Errorf("faild to seesion exist vinout, %s", err.Error())
 		} else if ok {
