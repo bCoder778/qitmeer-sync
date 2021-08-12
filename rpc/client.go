@@ -32,9 +32,9 @@ func (c *Client)TransactionStat(txid string, timestamp int64)(stat.TxStat){
 	for _, auth := range c.rpcAuth{
 		tx, err := c.getTransaction(txid, auth)
 		if err != nil {
+			log.Warnf("%s, %s", auth.Host, err.Error())
 			notConfirmed = true
 			if isNotExist(err){
-				log.Warnf("%s, %s", auth.Host, err.Error())
 				continue
 			}
 		}else{
