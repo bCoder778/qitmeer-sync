@@ -31,10 +31,12 @@ func (c *Client)TransactionStat(txid string, timestamp int64)(stat.TxStat){
 	inBlock := false
 	for _, auth := range c.rpcAuth{
 		tx, err := c.getTransaction(txid, auth)
-		if err != nil && isNotExist(err){
+		if err != nil {
 			notConfirmed = true
-			log.Errorf("%s, %s", auth.Host, err.Error())
-			continue
+			if isNotExist(err){
+				log.Errorf("%s, %s", auth.Host, err.Error())
+				continue
+			}
 		}else{
 			exist = true
 			if tx.Confirmations >= stat.Tx_Confirmed_Value{
