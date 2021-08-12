@@ -38,7 +38,7 @@ func (c *Client)TransactionStat(txid string, timestamp int64)(stat.TxStat){
 				continue
 			}
 		}else{
-			log.Debugf("%s, confirmations = %d", auth.Host, tx.Confirmations)
+			log.Debugf("%s, %s confirmations = %d", auth.Host,tx.Txid, tx.Confirmations)
 			exist = true
 			if tx.Confirmations >= stat.Tx_Confirmed_Value{
 				return  stat.TX_Confirmed
