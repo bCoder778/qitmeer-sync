@@ -253,7 +253,7 @@ func updateTransactions(sess *xorm.Session, txs []*types.Transaction) error {
 
 		cols := []string{`block_order`, `block_hash`, `tx_hash`, `expire`, `confirmations`, `txsvaild`, `duplicate`}
 
-		if tx.BlockHash == "" {
+		if tx.BlockHash == "" || tx.Stat == stat.TX_Memry{
 			if ok, err := sess.Where("tx_id = ?", tx.TxId).Get(queryTx); err != nil {
 				return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
 			} else if ok {
