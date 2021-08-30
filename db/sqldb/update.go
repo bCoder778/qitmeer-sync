@@ -333,7 +333,7 @@ func updateBlock(sess *xorm.Session, block *types.Block) error {
 		if _, err := sess.Where("hash = ?", block.Hash).
 			Cols(`txvalid`, `confirmations`, `version`, `weight`, `height`, `tx_root`, `order`,
 				`transactions`, `state_root`, `bits`, `timestamp`, `parent_root`, `parents`, `children`,
-				`difficulty`, `pow_name`, `pow_type`, `nonce`, `edge_bits`, `circle_nonces`, `address`,
+				`difficulty`, `pow_name`, `pow_type`, `peer_id`, `nonce`, `edge_bits`, `circle_nonces`, `address`,
 				`amount`, `color`, `stat`).Update(block); err != nil {
 			return err
 		}

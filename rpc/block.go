@@ -1,6 +1,8 @@
 package rpc
 
 import (
+	"encoding/hex"
+	"regexp"
 	"time"
 )
 
@@ -36,6 +38,17 @@ type Pow struct {
 type ProofData struct {
 	EdgeBits     int    `json:"edge_bits"`
 	CircleNonces string `json:"circle_nonces"`
+}
+
+
+func (b *Block)PeerId()string{
+	for _, tx := range b.Transactions{
+		peerId :=  tx.PeerId()
+		if peerId != ""{
+			return peerId
+		}
+	}
+	return ""
 }
 
 //区块中对应的每一个transaction
@@ -95,6 +108,19 @@ type ScriptPubKey struct {
 	ReqSigs   int      `json:"reqSigs"`
 	Type      string   `json:"type"`
 	Addresses []string `json:"addresses"`
+}
+
+func (t *Transaction)IsCoinbase() bool {
+	return t.Vin[0].Coinbase != ""
+}
+
+func (t *Transaction)PeerId() string {
+	if t.Vin[0].Coinbase != ""{
+		coinbase , _ := hex.DecodeString(t.Vin[0].Coinbase)
+		r, _ := regexp.Compile(`16U(\w*)`)
+		return string(r.Find(coinbase))
+	}
+	return ""
 }
 
 type GraphState struct {

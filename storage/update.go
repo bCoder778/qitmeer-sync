@@ -99,6 +99,7 @@ func (s *Storage) crateBlock(rpcBlock *rpc.Block) *types.Block {
 		PowType:       rpcBlock.Pow.PowType,
 		Nonce:         strconv.FormatUint(rpcBlock.Pow.Nonce, 10),
 		Address:       miner.Address,
+		PeerId:		   rpcBlock.PeerId(),
 		Amount:        miner.Amount,
 	}
 	if rpcBlock.Pow.ProofData != nil {
