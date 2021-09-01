@@ -211,7 +211,7 @@ func updateVouts(sess *xorm.Session, vouts []*types.Vout) error {
 
 	for _, vout := range vouts {
 		queryVout := &types.Vout{}
-		cols := []string{`order`, `height`, `timestamp`, `address`, `script_pub_key`, `is_blue`,`vout`, "confirmations", `lock`}
+		cols := []string{`order`, `height`, `timestamp`, `address`, `script_pub_key`, `is_blue`,`vout`, `lock`}
 		if ok, err := sess.Where("tx_id = ?  and number = ?", vout.TxId, vout.Number).Get(queryVout); err != nil {
 			return fmt.Errorf("faild to seesion exist vinout, %s", err.Error())
 		} else if ok {
@@ -221,6 +221,10 @@ func updateVouts(sess *xorm.Session, vouts []*types.Vout) error {
 			if queryVout.Stat != stat.TX_Confirmed {
 				cols = append(cols, `stat`)
 			}
+			if queryVout.Confirmations < vout.Confirmations{
+				cols = append(cols, `confirmations`)
+			}
+
 			if _, err := sess.Where("tx_id = ? and number = ?", vout.TxId, vout.Number).
 				Cols(cols...).Update(vout); err != nil {
 				return err
