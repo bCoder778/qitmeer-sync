@@ -19,7 +19,8 @@ func (d *DB) GetTransaction(txId string, blockHash string) (*types.Transaction, 
 
 func (d *DB)TransactionExist(txId string) bool{
 	tx := &types.Transaction{}
-	ok, _ := d.engine.Table(new(types.Transaction)).Where("tx_id = ?", txId).Get(tx)
+	ok, err := d.engine.Table(new(types.Transaction)).Where("tx_id = ?", txId).Get(tx)
+	fmt.Println(err)
 	return ok
 }
 
