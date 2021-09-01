@@ -23,6 +23,7 @@ type ISyncInfo interface {
 	UnconfirmedIds() []uint64
 	UnconfirmedIdsByCount(count int) []uint64
 	LastUnconfirmedOrder() uint64
+	TransactionExist(txId string) bool
 }
 
 type IUpdate interface {

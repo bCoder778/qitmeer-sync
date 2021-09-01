@@ -29,3 +29,7 @@ func (s *Storage) LastUnconfirmedOrder() uint64 {
 	order, _ := s.db.GetLastUnconfirmedOrder()
 	return order
 }
+
+func (s *Storage)TransactionExist(txId string) bool{
+	return s.db.TransactionExist(txId)
+}

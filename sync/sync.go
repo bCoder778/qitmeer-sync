@@ -171,11 +171,17 @@ func (qs *QitmeerSync) syncTxPool() {
 					log.Info("Shutdown sync tx pool when get transaction")
 					return
 				default:
+					exist := qs.storage.TransactionExist(txId)
+					if exist{
+						continue
+					}
+
 					tx, err := qs.rpc.GetTransaction(txId)
 					if err != nil {
 						log.Warnf("Request getTransaction rpc failed! err:%v", err)
 						continue
 					}
+
 					tx.Stat = int(stat.TX_Memry)
 					if err := qs.storage.SaveTransaction(tx, 0, 0, 1); err != nil {
 						//log.Mailf(config.Setting.Email.Title, "Sync tx pool to save transaction %v failed! err:%v", tx, err)

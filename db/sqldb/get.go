@@ -16,6 +16,13 @@ func (d *DB) GetTransaction(txId string, blockHash string) (*types.Transaction, 
 	return tx, err
 }
 
+
+func (d *DB)TransactionExist(txId string) bool{
+	tx := &types.Transaction{}
+	ok, _ := d.engine.Table(new(types.Transaction)).Where("tx_id = ?", txId).Get(tx)
+	return ok
+}
+
 func (d *DB) GetVout(txId string, vout int) (*types.Vout, error) {
 	vinout := &types.Vout{}
 	_, err := d.engine.Where("tx_id = ? and number = ?", txId, vout).Get(vinout)

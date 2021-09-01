@@ -35,6 +35,7 @@ type IGet interface {
 	GetConfirmedBlockCount() int64
 	GetAllUtxoAndBlockCount() (map[string]float64, int64, error)
 	GetConfirmedUtxoAndBlockCount() (float64, int64, error)
+	TransactionExist(txId string) bool
 }
 
 type IQuery interface {
