@@ -377,16 +377,16 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction() {
 			if err != nil{
 				continue
 			}
-			txs := make([]rpc.Transaction, len(block.Transactions)-1)
+			var rpcTxs []rpc.Transaction
 			for _, rpcTx := range block.Transactions{
 				if rpcTx.IsCoinbase(){
 					continue
 				}
 				rpcTx.Stat = int(tx.Stat)
-				txs = append(txs, rpcTx)
+				rpcTxs = append(rpcTxs, rpcTx)
 			}
 			hashMap[tx.BlockHash] = true
-			qs.uncfmTxCh <- txs
+			qs.uncfmTxCh <- rpcTxs
 		}
 	}
 	log.Infof("Request unconfirmed transaction end")
