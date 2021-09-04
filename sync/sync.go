@@ -126,7 +126,7 @@ func (qs *QitmeerSync) updateUnconfirmedBlock() {
 }
 
 func (qs *QitmeerSync) updateUnconfirmedTransaction() {
-	ticker := time.NewTicker(time.Second * 1)
+	ticker := time.NewTicker(time.Second * 10)
 	defer func() {
 		ticker.Stop()
 		qs.wg.Done()
