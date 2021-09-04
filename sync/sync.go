@@ -383,6 +383,8 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction() {
 					continue
 				}
 				rpcTx.Stat = int(tx.Stat)
+				rpcTx.BlockOrder = block.Order
+				rpcTx.BlockHeight = block.Height
 				rpcTxs = append(rpcTxs, rpcTx)
 			}
 			hashMap[tx.BlockHash] = true
