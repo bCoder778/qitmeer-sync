@@ -24,7 +24,7 @@ type QitmeerSync struct {
 	reBlockSync      chan struct{}
 	blockCh          chan *rpc.Block
 	uncfmBlockCh     chan *rpc.Block
-	uncfmTxCh   	 chan *rpc.Transaction
+	uncfmTxCh   	 chan []rpc.Transaction
 	interupt         chan struct{}
 	wg               sync.WaitGroup
 	verifyFiledCount int
@@ -52,21 +52,21 @@ func (qs *QitmeerSync) Stop() {
 }
 
 func (qs *QitmeerSync) Run() {
-	qs.wg.Add(1)
+	/*qs.wg.Add(1)
 	go qs.syncBlock()
 
 	qs.wg.Add(1)
 	go qs.syncTxPool()
 
 	qs.wg.Add(1)
-	go qs.updateUnconfirmedBlock()
+	go qs.updateUnconfirmedBlock()*/
 
 	qs.wg.Add(1)
 	go qs.updateUnconfirmedTransaction()
 
 
-	qs.wg.Add(1)
-	go qs.updateCoins()
+	/*qs.wg.Add(1)
+	go qs.updateCoins()*/
 
 	qs.wg.Wait()
 	if err := qs.storage.Close(); err != nil {
@@ -347,6 +347,7 @@ func (qs *QitmeerSync) saveUnconfirmedBlock() {
 }
 
 func (qs *QitmeerSync) requestUnconfirmedTransaction() {
+	hashMap := map[string]bool{}
 	txs := qs.storage.QueryUnconfirmedTranslateTransaction()
 	for _, tx := range txs {
 		select {
@@ -368,13 +369,24 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction() {
 				}
 				tx.Stat = txStat
 			}
-
-			rpcTx, err := qs.rpc.GetTransactionByBlockHash(tx.TxId, tx.BlockHash)
+			exist := hashMap[tx.BlockHash]
+			if exist{
+				continue
+			}
+			block, err := qs.rpc.GetBlockByHash(tx.BlockHash)
 			if err != nil{
 				continue
 			}
-			rpcTx.Stat = int(tx.Stat)
-			qs.uncfmTxCh <- rpcTx
+			txs := make([]rpc.Transaction, len(block.Transactions)-1)
+			for _, rpcTx := range block.Transactions{
+				if rpcTx.IsCoinbase(){
+					continue
+				}
+				rpcTx.Stat = int(tx.Stat)
+				txs = append(txs, rpcTx)
+			}
+			hashMap[tx.BlockHash] = true
+			qs.uncfmTxCh <- txs
 		}
 	}
 	log.Infof("Request unconfirmed transaction end")
@@ -382,17 +394,20 @@ func (qs *QitmeerSync) requestUnconfirmedTransaction() {
 
 
 func (qs *QitmeerSync) saveUnconfirmedTransaction() {
-	for tx := range qs.uncfmTxCh {
+	for txs := range qs.uncfmTxCh {
 		select {
 		case <-qs.interupt:
 			log.Info("Shutdown save unconfirmed transaction")
 			return
 		default:
-			log.Infof("Save unconfirmed transaction in block %d %s", tx.BlockOrder, tx.BlockHash)
-			if err := qs.storage.SaveTransaction(tx, tx.BlockOrder, tx.BlockHeight, 1); err != nil {
-				log.Errorf(config.Setting.Email.Title, "Failed to save unconfirmed transaction block %d, err:%v", tx.BlockOrder, err)
+			if len(txs) == 0{
+				continue
+			}
+			log.Infof("Save unconfirmed transaction in block %d %s", txs[0].BlockOrder, txs[0].BlockHash)
+			if err := qs.storage.UpdateTransactions(txs, txs[0].BlockOrder, txs[0].BlockHash, txs[0].BlockHeight, 1); err != nil {
+				log.Errorf(config.Setting.Email.Title, "Failed to save unconfirmed transaction block %d, err:%v", txs[0].BlockOrder, err)
 			} else {
-				log.Infof("Save unconfirmed transaction block %d", tx.BlockOrder)
+				log.Infof("Save unconfirmed transaction block %d", txs[0].BlockOrder)
 			}
 		}
 	}
@@ -417,7 +432,7 @@ func (qs *QitmeerSync) initUncfmTransactionCh() {
 	if qs.uncfmTxCh != nil {
 		close(qs.uncfmTxCh)
 	}
-	qs.uncfmTxCh = make(chan *rpc.Transaction, 100)
+	qs.uncfmTxCh = make(chan []rpc.Transaction, 100)
 }
 
 func isExist(err error) bool {

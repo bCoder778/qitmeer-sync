@@ -80,6 +80,18 @@ func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order, height uint64, 
 	return s.db.UpdateTransactionDatas(txData.Transactions, txData.Vins, txData.Vouts, txData.SpentedVouts, txData.Transfers)
 }
 
+func (s *Storage) UpdateTransactions(rpcTxs []rpc.Transaction, order uint64, hash string, height uint64, color int) error {
+	txData, err := s.createTransactions(rpcTxs, order, height, color, hash, true)
+	if err != nil {
+		return err
+	}
+
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	return s.db.UpdateTransactionDatas(txData.Transactions, txData.Vins, txData.Vouts, txData.SpentedVouts, txData.Transfers)
+}
+
 func (s *Storage) UpdateTransactionStat(txId string, confirmations uint64, stat stat.TxStat) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
