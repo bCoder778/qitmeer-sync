@@ -126,7 +126,7 @@ func (qs *QitmeerSync) updateUnconfirmedBlock() {
 }
 
 func (qs *QitmeerSync) updateUnconfirmedTransaction() {
-	ticker := time.NewTicker(time.Second * 10)
+	ticker := time.NewTicker(time.Second * 1)
 	defer func() {
 		ticker.Stop()
 		qs.wg.Done()
@@ -336,7 +336,7 @@ func (qs *QitmeerSync) saveUnconfirmedBlock() {
 			log.Info("Shutdown save unconfirmed block")
 			return
 		default:
-			if err := qs.storage.SaveBlock(block); err != nil {
+			if err := qs.storage.UpdateBlock(block); err != nil {
 				log.Errorf(config.Setting.Email.Title, "Failed to save unconfirmed block %d %s, err:%v", block.Order, block.Hash, err)
 			} else {
 				log.Infof("Save unconfirmed block %d", block.Order)

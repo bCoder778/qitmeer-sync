@@ -54,6 +54,23 @@ func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
 	return s.db.UpdateBlockDatas(block, txData.Transactions, txData.Vins, txData.Vouts, txData.SpentedVouts, txData.Transfers)
 }
 
+func (s *Storage) UpdateBlock(rpcBlock *rpc.Block) error {
+	block := s.crateBlock(rpcBlock)
+	/*txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue, rpcBlock.Hash, false)
+	if err != nil {
+		return err
+	}
+	if config.Setting.Verify.Version == "0.10" && rpcBlock.Order == 0 && rpcBlock.Height == 0 {
+		coinMap := parseVoutCoinAmount(txData.Vouts)
+		s.verify.Set10GenesisUTXO(coinMap)
+	}*/
+
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	return s.db.UpdateBlockDatas(block, nil, nil, nil, nil, nil)
+}
+
 func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order, height uint64, color int) error {
 	txData, err := s.createTransactions([]rpc.Transaction{*rpcTx}, order, height, color, rpcTx.BlockHash, true)
 	if err != nil {
