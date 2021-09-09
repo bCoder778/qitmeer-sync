@@ -211,7 +211,7 @@ func updateVouts(sess *xorm.Session, vouts []*types.Vout) error {
 
 	for _, vout := range vouts {
 		queryVout := &types.Vout{}
-		cols := []string{`order`, `height`, `timestamp`, `address`, `script_pub_key`, `is_blue`,`vout`, `lock`}
+		cols := []string{`order`, `height`, `timestamp`, `address`, `amount`,`script_pub_key`, `is_blue`,`vout`, `lock`}
 		if ok, err := sess.Where("tx_id = ?  and number = ?", vout.TxId, vout.Number).Get(queryVout); err != nil {
 			return fmt.Errorf("faild to seesion exist vinout, %s", err.Error())
 		} else if ok {
@@ -255,7 +255,7 @@ func updateTransactions(sess *xorm.Session, txs []*types.Transaction) error {
 		queryTx := &types.Transaction{}
 
 
-		cols := []string{`block_order`, `block_hash`, `tx_hash`, `expire`, `confirmations`, `txsvaild`, `duplicate`}
+		cols := []string{`vin_amount`,`vout_amount`,`block_order`, `block_hash`, `tx_hash`, `expire`, `confirmations`, `txsvaild`, `duplicate`}
 
 		if tx.BlockHash == "" || tx.Stat == stat.TX_Memry{
 			if ok, err := sess.Where("tx_id = ?", tx.TxId).Get(queryTx); err != nil {

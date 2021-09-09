@@ -137,6 +137,9 @@ func (qs *QitmeerSync) updateUnconfirmedTransaction() {
 	for {
 		select {
 		case <-ticker.C:
+			if len(qs.uncfmTxCh) != 0{
+				continue
+			}
 			log.Info("Start request unconfirmed transaction")
 			qs.requestUnconfirmedTransaction()
 		case <-qs.interupt:
