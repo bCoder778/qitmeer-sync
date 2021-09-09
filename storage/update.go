@@ -208,6 +208,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 					Confirmations: rpcTx.Confirmations,
 					Stat:          status,
 					Timestamp:     rpcTx.Timestamp.Unix(),
+					Duplicate: rpcTx.Duplicate,
 				}
 				vins = append(vins, newVin)
 			}else{
@@ -262,6 +263,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 				Stat:          status,
 				Timestamp:     rpcTx.Timestamp.Unix(),
 				Lock:          lock,
+				Duplicate: rpcTx.Duplicate,
 			}
 			totalVout += vout.Amount
 			vouts = append(vouts, newVout)
@@ -314,6 +316,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 				Timestamp:     tx.Timestamp,
 				Fees:          tx.Fees,
 				Stat:          tx.Stat,
+				Duplicate:     rpcTx.Duplicate,
 			})
 		}
 	}

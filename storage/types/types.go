@@ -79,6 +79,7 @@ type Transfer struct {
 	Fees          uint64      `xorm:"bigint" json:"fees"`
 	Timestamp     int64       `xorm:"bigint" json:"timestamp"`
 	Stat          stat.TxStat `xorm:"int" json:"stat"`
+	Duplicate     bool
 }
 
 type Vin struct {
@@ -96,6 +97,7 @@ type Vin struct {
 	Sequence      uint64      `xorm:"bigint" json:"sequence"`
 	ScriptSig     *ScriptSig  `xorm:"json" json:"scriptsig"`
 	Stat          stat.TxStat `xorm:"int" json:"stat"`
+	Duplicate     bool
 }
 
 type Vout struct {
@@ -115,6 +117,7 @@ type Vout struct {
 	Confirmations uint64        `xorm:"bigint" json:"confirmations"`
 	Stat          stat.TxStat   `xorm:"int" json:"stat"`
 	Lock          uint64        `xorm:"bigint" json:"lock"`
+	Duplicate     bool
 }
 
 type ScriptPubKey struct {
