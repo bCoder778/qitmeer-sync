@@ -25,7 +25,7 @@ func (d *DB) QueryUnConfirmedIdsByCount(count int) ([]uint64, error) {
 
 func (d *DB) QueryUnconfirmedTranslateTransaction() ([]types.Transaction, error) {
 	txs := []types.Transaction{}
-	err := d.engine.Where("is_coinbase = ?", 0).And("confirmations < ? and stat = ?", stat.Tx_Confirmed_Value, stat.TX_Unconfirmed).Find(&txs)
+	err := d.engine.Where("is_coinbase = ?", 0).And("confirmations < ? and stat in ( ?, ?)", stat.Tx_Confirmed_Value, stat.TX_Unconfirmed, stat.TX_Memry).Find(&txs)
 	return txs, err
 }
 
