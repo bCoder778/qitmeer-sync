@@ -26,7 +26,7 @@ type transactionData struct {
 }
 
 func (s *Storage) Set10GenesisUTXO(rpcBlock *rpc.Block) error {
-	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue, rpcBlock.Hash, false)
+	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Timestamp.Unix(), rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue, rpcBlock.Hash, false)
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (s *Storage) Set10GenesisUTXO(rpcBlock *rpc.Block) error {
 
 func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
 	block := s.crateBlock(rpcBlock)
-	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue, rpcBlock.Hash, false)
+	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Timestamp.Unix(), rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue, rpcBlock.Hash, false)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
 
 func (s *Storage) UpdateBlock(rpcBlock *rpc.Block) error {
 	block := s.crateBlock(rpcBlock)
-	txData, err := s.createTransactions([]rpc.Transaction{rpcBlock.Transactions[0]}, rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue, rpcBlock.Hash, false)
+	txData, err := s.createTransactions([]rpc.Transaction{rpcBlock.Transactions[0]}, rpcBlock.Timestamp.Unix(), rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue, rpcBlock.Hash, false)
 	if err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func (s *Storage) UpdateBlock(rpcBlock *rpc.Block) error {
 }
 
 func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order, height uint64, color int) error {
-	txData, err := s.createTransactions([]rpc.Transaction{*rpcTx}, order, height, color, rpcTx.BlockHash, true)
+	txData, err := s.createTransactions([]rpc.Transaction{*rpcTx}, 0, order, height, color, rpcTx.BlockHash, true)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order, height uint64, 
 }
 
 func (s *Storage) UpdateTransactions(rpcTxs []rpc.Transaction, order uint64, hash string, height uint64, color int) error {
-	txData, err := s.createTransactions(rpcTxs, order, height, color, hash, true)
+	txData, err := s.createTransactions(rpcTxs, 0, order, height, color, hash, true)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func (s *Storage) crateBlock(rpcBlock *rpc.Block) *types.Block {
 	return block
 }
 
-func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, height uint64, color int, blockHash string, isTransfer bool) (*transactionData, error) {
+func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, order, height uint64, color int, blockHash string, isTransfer bool) (*transactionData, error) {
 	txs := []*types.Transaction{}
 	vins := []*types.Vin{}
 	vouts := []*types.Vout{}
@@ -273,13 +273,17 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, order uint64, hei
 		if totalVin > totalVout {
 			fees = totalVin - totalVout
 		}
+		txTime := rpcTx.Timestamp.Unix()
+		if blockTime != 0 && isCoinbase{
+			txTime = blockTime
+		}
 		tx := &types.Transaction{
 			TxId:          rpcTx.Txid,
 			TxHash:        rpcTx.Txhash,
 			Size:          rpcTx.Size,
 			Version:       rpcTx.Version,
 			Locktime:      rpcTx.Locktime,
-			Timestamp:     rpcTx.Timestamp.Unix(),
+			Timestamp:     txTime,
 			Expire:        rpcTx.Expire,
 			BlockHash:     rpcTx.BlockHash,
 			BlockOrder:    order,
