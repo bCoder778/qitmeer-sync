@@ -13,7 +13,7 @@ var Qitmeer9Params = Params{
 }
 
 var Qitmeer10Params = Params{
-	BlockReward: 120 * 1e8,
+	BlockReward: 10 * 1e8,
 	GenesisUTXO: map[string]uint64{
 
 	},
