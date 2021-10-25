@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"fmt"
 	"github.com/bCoder778/log"
 	"github.com/bCoder778/qitmeer-sync/config"
 	"github.com/bCoder778/qitmeer-sync/db"
@@ -265,6 +266,10 @@ func (qs *QitmeerSync) saveBlock(group *sync.WaitGroup) {
 	for {
 		select {
 		case block := <-qs.blockCh:
+			if block.Hash == "0b7331ea514113643a908510f1044be19c33af37e97bc1719289c3e081dc8586"{
+				fmt.Println(1)
+			}
+			fmt.Println(block.Order)
 			if err := qs.storage.SaveBlock(block); err != nil {
 				log.Mailf(config.Setting.Email.Title, "Failed to save block %d %s, err:%s", block.Order, block.Hash, err.Error())
 				qs.reBlockSync <- struct{}{}

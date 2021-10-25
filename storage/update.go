@@ -10,6 +10,7 @@ import (
 	"github.com/bCoder778/qitmeer-sync/verify/stat"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type blockData struct {
@@ -19,10 +20,10 @@ type blockData struct {
 
 type transactionData struct {
 	Transactions []*types.Transaction
-	Vins         []*types.Vin
-	Vouts        []*types.Vout
-	SpentedVouts []*types.Vout
-	Transfers    []*types.Transfer
+	Vins         map[string][]*types.Vin
+	Vouts        map[string][]*types.Vout
+	SpentedVouts map[string][]*types.Vout
+	Transfers    map[string][]*types.Transfer
 }
 
 func (s *Storage) Set10GenesisUTXO(rpcBlock *rpc.Block) error {
@@ -38,6 +39,7 @@ func (s *Storage) Set10GenesisUTXO(rpcBlock *rpc.Block) error {
 }
 
 func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
+	fmt.Printf("Start createTransactions %d\n", time.Now().Unix())
 	block := s.crateBlock(rpcBlock)
 	txData, err := s.createTransactions(rpcBlock.Transactions, rpcBlock.Timestamp.Unix(), rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue, rpcBlock.Hash, false)
 	if err != nil {
@@ -47,7 +49,7 @@ func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
 		coinMap := parseVoutCoinAmount(txData.Vouts)
 		s.verify.Set10GenesisUTXO(coinMap)
 	}
-
+	fmt.Printf("End createTransactions %d\n", time.Now().Unix())
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -55,13 +57,14 @@ func (s *Storage) SaveBlock(rpcBlock *rpc.Block) error {
 }
 
 func (s *Storage) UpdateBlock(rpcBlock *rpc.Block) error {
+	fmt.Printf("Start createTransactions %d\n", time.Now().Unix())
 	block := s.crateBlock(rpcBlock)
 	txData, err := s.createTransactions([]rpc.Transaction{rpcBlock.Transactions[0]}, rpcBlock.Timestamp.Unix(), rpcBlock.Order, rpcBlock.Height, rpcBlock.IsBlue, rpcBlock.Hash, false)
 	if err != nil {
 		return err
 	}
 
-
+	fmt.Printf("End createTransactions %d\n", time.Now().Unix())
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -69,11 +72,12 @@ func (s *Storage) UpdateBlock(rpcBlock *rpc.Block) error {
 }
 
 func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order, height uint64, color int) error {
+	fmt.Printf("Start createTransactions %d\n", time.Now().Unix())
 	txData, err := s.createTransactions([]rpc.Transaction{*rpcTx}, 0, order, height, color, rpcTx.BlockHash, true)
 	if err != nil {
 		return err
 	}
-
+	fmt.Printf("End createTransactions %d\n", time.Now().Unix())
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -81,11 +85,12 @@ func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order, height uint64, 
 }
 
 func (s *Storage) UpdateTransactions(rpcTxs []rpc.Transaction, order uint64, hash string, height uint64, color int) error {
+	fmt.Printf("Start createTransactions %d\n", time.Now().Unix())
 	txData, err := s.createTransactions(rpcTxs, 0, order, height, color, hash, true)
 	if err != nil {
 		return err
 	}
-
+	fmt.Printf("End createTransactions %d\n", time.Now().Unix())
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -137,14 +142,18 @@ func (s *Storage) crateBlock(rpcBlock *rpc.Block) *types.Block {
 
 func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, order, height uint64, color int, blockHash string, isTransfer bool) (*transactionData, error) {
 	txs := []*types.Transaction{}
-	vins := []*types.Vin{}
-	vouts := []*types.Vout{}
-	spentedVouts := []*types.Vout{}
-	transfers := []*types.Transfer{}
+	vinMap :=  map[string][]*types.Vin{}
+	voutsMap :=  map[string][]*types.Vout{}
+	spentedMap := map[string][]*types.Vout{}
+	transfersMap := map[string][]*types.Transfer{}
 	vinAddress := ""
 	voutAddress := ""
 
 	for _, rpcTx := range rpcTxs {
+		vins :=  []*types.Vin{}
+		vouts :=  []*types.Vout{}
+		transfers := []*types.Transfer{}
+		spentedVouts := []*types.Vout{}
 		isCoinbase := s.verify.IsCoinBase(&rpcTx)
 		addressInOut := NewAddressInOutMap()
 		status := s.verify.TransactionStat(&rpcTx, color)
@@ -171,7 +180,16 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 
 				// 可能引用同一区块vout
 				if vout.TxId == "" {
-					if vout, err = s.finVout(vin.Txid, vin.Vout, vouts); err != nil {
+					txVouts, exist := voutsMap[vin.Txid]
+					if exist{
+						for i, v := range txVouts{
+							if v.TxId == vin.Txid && v.Number == vin.Vout {
+								v.SpentTx = rpcTx.Txid
+								txVouts[i] = v
+								voutsMap[vin.Txid] = txVouts
+							}
+						}
+					}else{
 						return nil, fmt.Errorf("query txid %s, vout=%d failed!", vin.Txid, vin.Vout)
 					}
 				}
@@ -208,7 +226,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 					Confirmations: rpcTx.Confirmations,
 					Stat:          status,
 					Timestamp:     rpcTx.Timestamp.Unix(),
-					Duplicate: rpcTx.Duplicate,
+					Duplicate:     rpcTx.Duplicate,
 				}
 				vins = append(vins, newVin)
 			}else{
@@ -323,15 +341,23 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 				Duplicate:     rpcTx.Duplicate,
 			})
 		}
+
+		vinMap[rpcTx.Txid] = vins
+		voutsMap[rpcTx.Txid] = vouts
+		transfersMap[rpcTx.Txid] = transfers
+		spentedMap[rpcTx.Txid] = spentedVouts
 	}
 
-	return &transactionData{txs, vins, vouts, spentedVouts, transfers}, nil
+	return &transactionData{txs, vinMap, voutsMap, spentedMap, transfersMap}, nil
 }
 
-func (s *Storage) finVout(txId string, number int, vouts []*types.Vout) (*types.Vout, error) {
-	for _, v := range vouts {
-		if v.TxId == txId && v.Number == number {
-			return v, nil
+func (s *Storage) finVout(txId string, number int, voutsMap map[string][]*types.Vout) (*types.Vout, error) {
+	vouts, exist := voutsMap[txId]
+	if exist{
+		for _, vout := range vouts{
+			if vout.TxId == txId && vout.Number == number {
+				return vout, nil
+			}
 		}
 	}
 	return nil, fmt.Errorf("vout is not exist")
@@ -421,13 +447,15 @@ func (a *AddressInOutMap) AddressChange() []*AddressChange {
 	return addrChanges
 }
 
-func parseVoutCoinAmount(vouts []*types.Vout) map[string]uint64 {
+func parseVoutCoinAmount(voutsMap map[string][]*types.Vout) map[string]uint64 {
 	coinMap := map[string]uint64{}
-	for _, vout := range vouts {
-		if _, ok := coinMap[vout.CoinId]; ok {
-			coinMap[vout.CoinId] += vout.Amount
-		} else {
-			coinMap[vout.CoinId] = vout.Amount
+	for _, vouts := range voutsMap{
+		for _, vout := range vouts {
+			if _, ok := coinMap[vout.CoinId]; ok {
+				coinMap[vout.CoinId] += vout.Amount
+			} else {
+				coinMap[vout.CoinId] = vout.Amount
+			}
 		}
 	}
 	return coinMap
