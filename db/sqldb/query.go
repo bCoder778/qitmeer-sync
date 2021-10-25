@@ -12,8 +12,12 @@ func (d *DB) QueryUnConfirmedOrders() ([]uint64, error) {
 }
 
 func (d *DB) QueryUnConfirmedIds() ([]uint64, error) {
+	lastHeight ,_ := d.GetLastHeight()
+	if lastHeight > 1000{
+		lastHeight -= 1000
+	}
 	ids := []uint64{}
-	err := d.engine.Table(new(types.Block)).Where("stat = ?", stat.Block_Unconfirmed).Cols("id").Find(&ids)
+	err := d.engine.Table(new(types.Block)).Where("stat = ? and (height > ? or block.order != 0)", stat.Block_Unconfirmed, lastHeight).Cols("id").Find(&ids)
 	return ids, err
 }
 
