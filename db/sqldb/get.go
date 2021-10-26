@@ -10,17 +10,15 @@ import (
 func (d *DB) GetTransaction(txId string, blockHash string) (*types.Transaction, error) {
 	tx := &types.Transaction{}
 	ok, err := d.engine.Table(new(types.Transaction)).Where("tx_id = ? and block_hash = ?", txId, blockHash).Get(tx)
-	if !ok{
+	if !ok {
 		return nil, errors.New("not found")
 	}
 	return tx, err
 }
 
-
-func (d *DB)TransactionExist(txId string) bool{
+func (d *DB) TransactionExist(txId string) bool {
 	tx := &types.Transaction{}
-	ok, err := d.engine.Table(new(types.Transaction)).Where("tx_id = ?", txId).Get(tx)
-	fmt.Println(err)
+	ok, _ := d.engine.Table(new(types.Transaction)).Where("tx_id = ?", txId).Get(tx)
 	return ok
 }
 

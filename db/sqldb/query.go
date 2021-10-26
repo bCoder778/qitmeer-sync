@@ -12,8 +12,8 @@ func (d *DB) QueryUnConfirmedOrders() ([]uint64, error) {
 }
 
 func (d *DB) QueryUnConfirmedIds() ([]uint64, error) {
-	lastHeight ,_ := d.GetLastHeight()
-	if lastHeight > 1000{
+	lastHeight, _ := d.GetLastHeight()
+	if lastHeight > 1000 {
 		lastHeight -= 1000
 	}
 	ids := []uint64{}

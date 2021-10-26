@@ -169,29 +169,40 @@ func (qs *QitmeerSync) syncTxPool() {
 				log.Warnf("Request getMemoryPool rpc failed! err:%v", err)
 				continue
 			}
+			if len(txIds) == 0{
+				continue
+			}
+			preTxs := []rpc.Transaction{}
+			insertTxs := []rpc.Transaction{}
+			if len(txIds) > 1000{
+				txIds = txIds[len(txIds)-1000:len(txIds)]
+			}
 			for _, txId := range txIds {
 				select {
 				case <-qs.interupt:
 					log.Info("Shutdown sync tx pool when get transaction")
 					return
 				default:
-					exist := qs.storage.TransactionExist(txId)
-					if exist{
-						continue
-					}
-
 					tx, err := qs.rpc.GetTransaction(txId)
 					if err != nil {
 						log.Warnf("Request getTransaction rpc failed! err:%v", err)
 						continue
 					}
-
 					tx.Stat = int(stat.TX_Memry)
-					if err := qs.storage.SaveTransaction(tx, 0, 0, 1); err != nil {
-						//log.Mailf(config.Setting.Email.Title, "Sync tx pool to save transaction %v failed! err:%v", tx, err)
-						continue
-					}
+					preTxs = append(preTxs, *tx)
 				}
+			}
+			for _, tx := range preTxs{
+				exist := qs.storage.TransactionExist(tx.Txid)
+				if exist{
+					continue
+				}
+				insertTxs = append(insertTxs, tx)
+			}
+
+			if err = qs.storage.SaveTransaction(insertTxs, 0, 0, "", 1); err != nil {
+				//log.Mailf(config.Setting.Email.Title, "Sync tx pool to save transaction %v failed! err:%v", tx, err)
+				continue
 			}
 		}
 	}

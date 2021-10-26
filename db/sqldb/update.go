@@ -77,9 +77,10 @@ func (d *DB) Clear() error {
 	return nil
 }
 
-func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction,
+func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction, dupTxs []*types.Transaction,
 	vinsMap map[string][]*types.Vin, voutsMap map[string][]*types.Vout,
-	spentedVouts map[string][]*types.Vout, transfersMap map[string][]*types.Transfer) error {
+	spentedVouts map[string][]*types.Vout, transfersMap map[string][]*types.Transfer,
+	height uint64) error {
 	sess := d.engine.NewSession()
 	defer sess.Close()
 	fmt.Printf("Start UpdateBlockDatas %d\n", time.Now().Unix())
@@ -94,7 +95,7 @@ func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction,
 		return err
 	}
 	fmt.Printf("End updateBlock %d\n", time.Now().Unix())
-	if err := updateTransactions(sess, txs); err != nil {
+	if err := updateTransactions(sess, txs, dupTxs, height); err != nil {
 		if errR := sess.Rollback(); errR != nil {
 			return fmt.Errorf("roll back failed! %s", errR.Error())
 		}
@@ -136,9 +137,10 @@ func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction,
 	return nil
 }
 
-func (d *DB) UpdateTransactionDatas(txs []*types.Transaction, vinsMap map[string][]*types.Vin,
-	voutsMap map[string][]*types.Vout, spentedVoutsMap map[string][]*types.Vout,
-	transfersMap map[string][]*types.Transfer) error {
+func (d *DB) UpdateTransactionDatas(txs []*types.Transaction, dupTxs []*types.Transaction,
+	vinsMap map[string][]*types.Vin, voutsMap map[string][]*types.Vout,
+	spentedVoutsMap map[string][]*types.Vout, transfersMap map[string][]*types.Transfer,
+	height uint64) error {
 	sess := d.engine.NewSession()
 	defer sess.Close()
 
@@ -146,7 +148,7 @@ func (d *DB) UpdateTransactionDatas(txs []*types.Transaction, vinsMap map[string
 		return fmt.Errorf("failed to seesion begin, %s", err.Error())
 	}
 
-	if err := updateTransactions(sess, txs); err != nil {
+	if err := updateTransactions(sess, txs, dupTxs, height); err != nil {
 		if errR := sess.Rollback(); errR != nil {
 			return fmt.Errorf("roll back failed! %s", errR.Error())
 		}
@@ -189,7 +191,7 @@ func (d *DB) UpdateTransactionDatas(txs []*types.Transaction, vinsMap map[string
 
 func updateVins(sess *xorm.Session, vinsMap map[string][]*types.Vin) error {
 	// 更新vin
-	for txId, vins := range vinsMap{
+	for txId, vins := range vinsMap {
 		/*for _, vin := range vins {
 			queryVin := &types.Vin{}
 			cols := []string{`order`, `timestamp`, `address`, `amount`, `spented_tx`, `vout`, `confirmations`}
@@ -214,22 +216,22 @@ func updateVins(sess *xorm.Session, vinsMap map[string][]*types.Vin) error {
 			}
 		}*/
 
-		if len(vins) == 0{
+		if len(vins) == 0 {
 			continue
 		}
 		queryVin := &types.Vin{}
-		if exist, err := sess.Table(types.Vin{}).Where("tx_id = ?", txId).Limit(1).Get(queryVin);err != nil{
+		if exist, err := sess.Table(types.Vin{}).Where("tx_id = ?", txId).Limit(1).Get(queryVin); err != nil {
 			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
-		}else if exist{
+		} else if exist {
 			cols := []string{`order`, `timestamp`, `confirmations`}
-			if queryVin.Stat != stat.TX_Confirmed{
+			if queryVin.Stat != stat.TX_Confirmed {
 				cols = append(cols, "stat")
 			}
-			if _, err = sess.Table(types.Vout{}).Where("tx_id = ?", txId).Cols(cols...).Update(vins[0]);err != nil{
+			if _, err = sess.Table(types.Vout{}).Where("tx_id = ?", txId).Cols(cols...).Update(vins[0]); err != nil {
 				return err
 			}
-		}else{
-			if _, err = sess.InsertMulti(vins);err != nil{
+		} else {
+			if _, err = sess.InsertMulti(vins); err != nil {
 				return err
 			}
 		}
@@ -240,7 +242,7 @@ func updateVins(sess *xorm.Session, vinsMap map[string][]*types.Vin) error {
 
 func updateVouts(sess *xorm.Session, voutsMap map[string][]*types.Vout) error {
 	// 更新vout
-	for txId, vouts := range voutsMap{
+	for txId, vouts := range voutsMap {
 		/*for _, vout := range vouts {
 
 			queryVout := &types.Vout{}
@@ -271,38 +273,39 @@ func updateVouts(sess *xorm.Session, voutsMap map[string][]*types.Vout) error {
 				}
 			}
 		}*/
-		if len(vouts) == 0{
+		if len(vouts) == 0 {
 			continue
 		}
 		queryVout := &types.Vout{}
-		if exist, err := sess.Table(types.Vout{}).Where("tx_id = ?", txId).Limit(1).Get(queryVout);err != nil{
+		if exist, err := sess.Table(types.Vout{}).Where("tx_id = ?", txId).Limit(1).Get(queryVout); err != nil {
 			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
-		}else if exist{
+		} else if exist {
 			cols := []string{`order`, `height`, `timestamp`, `is_blue`}
-			if queryVout.Stat != stat.TX_Confirmed{
+			if queryVout.Stat != stat.TX_Confirmed {
 				cols = append(cols, "stat")
 			}
-			if queryVout.Confirmations < vouts[0].Confirmations{
+			if queryVout.Confirmations < vouts[0].Confirmations {
 				cols = append(cols, `confirmations`)
 			}
-			if _, err = sess.Table(types.Vout{}).Where("tx_id = ?", txId).Cols(cols...).Update(vouts[0]); err != nil{
+			if _, err = sess.Table(types.Vout{}).Where("tx_id = ?", txId).Cols(cols...).Update(vouts[0]); err != nil {
 				return err
 			}
-		}else{
+		} else {
 			insertCount := 2000
 			times := len(vouts) / insertCount
 			lastCout := len(vouts) % insertCount
-			if lastCout != 0{
+			if lastCout != 0 {
 				times++
 			}
-			for i := 0;i < times;i++{
+			for i := 0; i < times; i++ {
 				start := i * insertCount
-				end := i * insertCount + insertCount
-				if lastCout != 0 && i == times - 1{
-					end = i * insertCount + lastCout
+				end := i*insertCount + insertCount
+				if lastCout != 0 && i == times-1 {
+					end = i*insertCount + lastCout
 				}
-				if i == times - 1{}
-				if _, err = sess.Table(types.Vout{}).InsertMulti(vouts[start:end]);err != nil{
+				if i == times-1 {
+				}
+				if _, err = sess.Table(types.Vout{}).InsertMulti(vouts[start:end]); err != nil {
 					return err
 				}
 			}
@@ -313,23 +316,23 @@ func updateVouts(sess *xorm.Session, voutsMap map[string][]*types.Vout) error {
 
 func updateSpentedVinouts(sess *xorm.Session, voutsMap map[string][]*types.Vout) error {
 	// 更新spentedVouts
-	for spentTx, vouts := range voutsMap{
-		if len(vouts) == 0{
+	for spentTx, vouts := range voutsMap {
+		if len(vouts) == 0 {
 			continue
 		}
 		ids := ""
 		for i, vout := range vouts {
-			if i == len(vouts) - 1{
+			if i == len(vouts)-1 {
 				ids += fmt.Sprintf("%d", vout.Id)
-			}else{
+			} else {
 				ids += fmt.Sprintf("%d,", vout.Id)
 			}
 		}
 		// select * from vout where tx_id
 		if _, err := sess.Table(types.Vout{}).Where("find_in_set(id, ?)", ids).
 			Update(map[string]string{
-				"spent_tx":spentTx,
-		}); err != nil {
+				"spent_tx": spentTx,
+			}); err != nil {
 			return err
 		}
 	}
@@ -337,12 +340,84 @@ func updateSpentedVinouts(sess *xorm.Session, voutsMap map[string][]*types.Vout)
 	return nil
 }
 
-func updateTransactions(sess *xorm.Session, txs []*types.Transaction) error {
-	// 更新transaction
-	for _, tx := range txs {
+func updateTransactions(sess *xorm.Session, txs []*types.Transaction, dupTxs []*types.Transaction, height uint64) error {
+	// 更新block中的transaction
+	if height != 0 {
 		queryTx := &types.Transaction{}
+		if exist, err := sess.Table(types.Transaction{}).Where("block_hash = ?", txs[0].BlockHash).Limit(1).Get(queryTx); err != nil {
+			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
+		} else if exist {
+			cols := []string{`block_order`, `confirmations`, `txsvaild`, `duplicate`}
+			if queryTx.Stat != stat.TX_Confirmed {
+				cols = append(cols, "stat")
+			}
+			// 非重复交易更新
+			if len(txs) != 0 {
+				txIds := ""
+				for i, tx := range txs {
+					if i == len(txs)-1 {
+						txIds += fmt.Sprintf("%s", tx.TxId)
+					} else {
+						txIds += fmt.Sprintf("%s,", tx.TxId)
+					}
+				}
+				if _, err = sess.Table(types.Transaction{}).Where("block_hash = ? and find_in_set(tx_id, ?)", txs[0].BlockHash, txIds).Cols(cols...).Update(txs[0]); err != nil {
+					return err
+				}
+			}
+			if len(dupTxs) != 0{
+				txIds := ""
+				for i, tx := range dupTxs {
+					if i == len(dupTxs)-1 {
+						txIds += fmt.Sprintf("%s", tx.TxId)
+					} else {
+						txIds += fmt.Sprintf("%s,", tx.TxId)
+					}
+				}
+				if _, err = sess.Table(types.Transaction{}).Where("block_hash = ? and find_in_set(tx_id, ?)", dupTxs[0].BlockHash, txIds).Cols(cols...).Update(dupTxs[0]); err != nil {
+					return err
+				}
+			}
+		} else {
+			if len(txs) != 0{
+				if _, err = sess.InsertMulti(txs); err != nil {
+					return err
+				}
+			}
+			if len(dupTxs) != 0{
+				if _, err = sess.InsertMulti(dupTxs); err != nil {
+					return err
+				}
+			}
+			// 删除mem交易记录
+			if len(txs) != 0 ||  len(dupTxs) != 0{
+				txIds := ""
+				txs = append(txs, dupTxs...)
+				for i, tx := range txs {
+					if i == len(txs)-1 {
+						txIds += fmt.Sprintf("%s", tx.TxId)
+					} else {
+						txIds += fmt.Sprintf("%s,", tx.TxId)
+					}
+				}
+				sql := fmt.Sprintf("delete from transaction where block_hash = '' and find_in_set(tx_id, '%s')", txIds)
+				_, err = sess.Exec(sql)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}else if len(txs) != 0{
 
+		// 更新交易池中的交易
+		if _, err := sess.InsertMulti(txs);err != nil{
+			return err
+		}
+	}
 
+	return nil
+	/*for _, tx := range txs {
+		queryTx := &types.Transaction{}
 		cols := []string{`vin_amount`,`vout_amount`,`block_order`, `block_hash`, `tx_hash`, `expire`, `confirmations`, `txsvaild`, `duplicate`}
 
 		if tx.BlockHash == "" || tx.Stat == stat.TX_Memry{
@@ -382,56 +457,56 @@ func updateTransactions(sess *xorm.Session, txs []*types.Transaction) error {
 				}
 			}
 		}
-	}
+	}*/
 	return nil
 }
 
 func updateTransfers(sess *xorm.Session, transfersMap map[string][]*types.Transfer) error {
 	// 更新transaction
 	/*
-	fmt.Println(len(transfers))
-	for _, tras := range transfers {
-		queryTransfer := &types.Transfer{}
-		if ok, err := sess.Where("tx_id = ? and address = ? and coin_id = ?", tras.TxId, tras.Address, tras.CoinId).Get(queryTransfer); err != nil {
-			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
-		} else if ok {
-			if tras.Duplicate{
-				continue
-			}
-			if queryTransfer.Stat == stat.TX_Confirmed {
-				if _, err := sess.Where("tx_id = ? and address = ? and coin_id = ?", tras.TxId, tras.Address, tras.CoinId).
-					Cols(cols...).Update(tras); err != nil {
-					return err
+		fmt.Println(len(transfers))
+		for _, tras := range transfers {
+			queryTransfer := &types.Transfer{}
+			if ok, err := sess.Where("tx_id = ? and address = ? and coin_id = ?", tras.TxId, tras.Address, tras.CoinId).Get(queryTransfer); err != nil {
+				return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
+			} else if ok {
+				if tras.Duplicate{
+					continue
 				}
-			}else{
-				if _, err := sess.Where("tx_id = ? and address = ? and coin_id = ?", tras.TxId, tras.Address, tras.CoinId).
-					Cols(colsHasStat...).Update(tras); err != nil {
-					return err
+				if queryTransfer.Stat == stat.TX_Confirmed {
+					if _, err := sess.Where("tx_id = ? and address = ? and coin_id = ?", tras.TxId, tras.Address, tras.CoinId).
+						Cols(cols...).Update(tras); err != nil {
+						return err
+					}
+				}else{
+					if _, err := sess.Where("tx_id = ? and address = ? and coin_id = ?", tras.TxId, tras.Address, tras.CoinId).
+						Cols(colsHasStat...).Update(tras); err != nil {
+						return err
+					}
+				}
+			} else {
+				if _, err := sess.Insert(tras); err != nil {
+					return fmt.Errorf("insert transfer  error, %s", err)
 				}
 			}
-		} else {
-			if _, err := sess.Insert(tras); err != nil {
-				return fmt.Errorf("insert transfer  error, %s", err)
-			}
-		}
-	}*/
-	for txId, transfers := range transfersMap{
-		if len(transfers) == 0{
+		}*/
+	for txId, transfers := range transfersMap {
+		if len(transfers) == 0 {
 			continue
 		}
 		queryTransfer := &types.Transfer{}
-		if exist, err := sess.Table(types.Transfer{}).Where("tx_id = ?", txId).Limit(1).Get(queryTransfer);err != nil{
+		if exist, err := sess.Table(types.Transfer{}).Where("tx_id = ?", txId).Limit(1).Get(queryTransfer); err != nil {
 			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
-		}else if exist{
+		} else if exist {
 			cols := []string{`confirmations`, `txsvaild`, `is_blue`}
-			if queryTransfer.Stat != stat.TX_Confirmed{
+			if queryTransfer.Stat != stat.TX_Confirmed {
 				cols = append(cols, "stat")
 			}
-			if _, err = sess.Table(types.Transfer{}).Where("tx_id = ?", txId).Cols(cols...).Update(transfers[0]);err != nil{
+			if _, err = sess.Table(types.Transfer{}).Where("tx_id = ?", txId).Cols(cols...).Update(transfers[0]); err != nil {
 				return err
 			}
-		}else{
-			if _, err = sess.InsertMulti(transfers);err != nil{
+		} else {
+			if _, err = sess.InsertMulti(transfers); err != nil {
 				return err
 			}
 		}
@@ -495,26 +570,26 @@ func (d *DB) UpdateTransactionStat(txId string, confirmations uint64, txStat sta
 	}
 	if _, err := sess.Where("tx_id = ?", txId).
 		Cols(`stat`, `confirmations`).
-		Update(&types.Transaction{Stat:txStat, Confirmations: confirmations}); err != nil {
+		Update(&types.Transaction{Stat: txStat, Confirmations: confirmations}); err != nil {
 		return err
 	}
 
 	if _, err := sess.Where("tx_id = ?", txId).
-		Cols(`stat`,  `confirmations`).
+		Cols(`stat`, `confirmations`).
 		Update(&types.Vin{TxId: txId, Stat: txStat, Confirmations: confirmations}); err != nil {
 		return err
 	}
 	if _, err := sess.Where("tx_id = ?", txId).
-		Cols(`stat`,  `confirmations`).
+		Cols(`stat`, `confirmations`).
 		Update(&types.Vout{TxId: txId, Stat: txStat, Confirmations: confirmations}); err != nil {
 		return err
 	}
 	if _, err := sess.Where("tx_id = ?", txId).
-		Cols(`stat`,  `confirmations`).
+		Cols(`stat`, `confirmations`).
 		Update(&types.Transfer{TxId: txId, Stat: txStat, Confirmations: confirmations}); err != nil {
 		return err
 	}
-	if txStat == stat.TX_Failed{
+	if txStat == stat.TX_Failed {
 		if _, err := sess.Where("spent_tx = ?", txId).
 			Cols("spent_tx").
 			Update(&types.Vout{SpentTx: ""}); err != nil {
@@ -526,4 +601,3 @@ func (d *DB) UpdateTransactionStat(txId string, confirmations uint64, txStat sta
 	}
 	return nil
 }
-

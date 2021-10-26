@@ -29,7 +29,7 @@ type ISyncInfo interface {
 type IUpdate interface {
 	SaveBlock(block *rpc.Block) error
 	UpdateBlock(block *rpc.Block) error
-	SaveTransaction(tx *rpc.Transaction, order, height uint64, color int) error
+	SaveTransaction(txs []rpc.Transaction, order, height uint64, blockHash string, color int) error
 	UpdateTransactions(tx []rpc.Transaction, order uint64, hash string,  height uint64, color int) error
 	UpdateTransactionStat(txId string, confirmations uint64, stat stat.TxStat) error
 	UpdateCoins(coins []types.Coin)
