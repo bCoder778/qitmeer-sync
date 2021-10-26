@@ -171,37 +171,46 @@ func (qs *QitmeerSync) syncTxPool() {
 			if len(txIds) == 0{
 				continue
 			}
-			preTxs := []rpc.Transaction{}
-			insertTxs := []rpc.Transaction{}
-			if len(txIds) > 1000{
-				txIds = txIds[len(txIds)-1000:len(txIds)]
+
+			insertTxIds := []string{}
+			insertCount := 500
+			times := len(txIds) / insertCount
+			lastCout := len(txIds) % insertCount
+			if lastCout != 0 {
+				times++
 			}
-			for _, txId := range txIds {
-				select {
-				case <-qs.interupt:
-					log.Info("Shutdown sync tx pool when get transaction")
-					return
-				default:
-					tx, err := qs.rpc.GetTransaction(txId)
-					if err != nil {
-						log.Warnf("Request getTransaction rpc failed! err:%v", err)
-						continue
-					}
-					tx.Stat = int(stat.TX_Memry)
-					preTxs = append(preTxs, *tx)
+			for i := 0; i < times; i++ {
+				start := i * insertCount
+				end := i*insertCount + insertCount
+				if lastCout != 0 && i == times-1 {
+					end = i*insertCount + lastCout
 				}
-			}
-			for _, tx := range preTxs{
-				exist := qs.storage.TransactionExist(tx.Txid)
-				if exist{
+				insertTxIds = txIds[start:end]
+				insertTxs := []rpc.Transaction{}
+				for _, txId := range insertTxIds {
+					select {
+					case <-qs.interupt:
+						log.Info("Shutdown sync tx pool when get transaction")
+						return
+					default:
+						exist := qs.storage.TransactionExist(txId)
+						if exist{
+							continue
+						}
+						tx, err := qs.rpc.GetTransaction(txId)
+						if err != nil {
+							log.Warnf("Request getTransaction rpc failed! err:%v", err)
+							continue
+						}
+						tx.Stat = int(stat.TX_Memry)
+						insertTxs = append(insertTxs, *tx)
+					}
+				}
+				if err = qs.storage.SaveTransaction(insertTxs, 0, 0, "", 1); err != nil {
+					//log.Mailf(config.Setting.Email.Title, "Sync tx pool to save transaction %v failed! err:%v", tx, err)
 					continue
 				}
-				insertTxs = append(insertTxs, tx)
-			}
 
-			if err = qs.storage.SaveTransaction(insertTxs, 0, 0, "", 1); err != nil {
-				//log.Mailf(config.Setting.Email.Title, "Sync tx pool to save transaction %v failed! err:%v", tx, err)
-				continue
 			}
 		}
 	}

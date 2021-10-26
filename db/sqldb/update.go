@@ -303,8 +303,6 @@ func updateVouts(sess *xorm.Session, voutsMap map[string][]*types.Vout) error {
 				if lastCout != 0 && i == times-1 {
 					end = i*insertCount + lastCout
 				}
-				if i == times-1 {
-				}
 				if _, err = sess.Table(types.Vout{}).InsertMulti(vouts[start:end]); err != nil {
 					return err
 				}
