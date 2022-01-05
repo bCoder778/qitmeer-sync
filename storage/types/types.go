@@ -27,15 +27,15 @@ type Block struct {
 	Nonce         string         `xorm:"varchar(32)" json:"nonce"`
 	EdgeBits      int            `xorm:"int" json:"edgebits"`
 	CircleNonces  string         `xorm:"Text" json:"circlenonces"`
-	Address       string         `xorm:"varchar(40)" json:"address"`
+	Address       string         `xorm:"varchar(65)" json:"address"`
 	Amount        uint64         `xorm:"bigint" json:"amount"`
-	PeerId        string 		 `xorm:"varchar(64)" json:"peerid"`
+	PeerId        string         `xorm:"varchar(64)" json:"peerid"`
 	Color         stat.Color     `xorm:"int" json:"color"`
 	Stat          stat.BlockStat `xorm:"int" json:"stat"`
 }
 
 type Miner struct {
-	Address string `xorm:"varchar(40)"`
+	Address string `xorm:"varchar(65)"`
 	Amount  uint64 `xorm:"bigint"`
 }
 
@@ -53,11 +53,11 @@ type Transaction struct {
 	Confirmations uint64      `xorm:"bigint" json:"confirmations"`
 	Txsvaild      bool        `xorm:"bool" json:"txsvaild"`
 	IsCoinbase    bool        `xorm:"bool" json:"iscoinbase"`
-	VinAmount 	  uint64 	  `xorm:"bigint" json:"vinamount"`
-	VoutAmount 	  uint64 	  `xorm:"bigint" json:"voutamount"`
-	VinAddress    string 	  `xorm:"varchar(35)" json:"vinaddress"`
-	VoutAddress   string 	  `xorm:"varchar(35)" json:"voutaddress"`
-	To 			  string 	  ``
+	VinAmount     uint64      `xorm:"bigint" json:"vinamount"`
+	VoutAmount    uint64      `xorm:"bigint" json:"voutamount"`
+	VinAddress    string      `xorm:"varchar(65)" json:"vinaddress"`
+	VoutAddress   string      `xorm:"varchar(65)" json:"voutaddress"`
+	To            string      ``
 	Vins          int         `xorm:"int" json:"vin"`
 	Vouts         int         `xorm:"int" json:"vout"`
 	Fees          uint64      `xorm:"bigint" json:"fees"`
@@ -69,12 +69,12 @@ type Transfer struct {
 	Id            uint64      `xorm:"bigint autoincr pk" json:"id"`
 	TxId          string      `xorm:"varchar(64) index" json:"txid"`
 	BlockHash     string      `xorm:"varchar(64)" json:"block_hash"`
-	Address       string      `xorm:"varchar(35) index" json:"address"`
+	Address       string      `xorm:"varchar(65) index" json:"address"`
 	CoinId        string      `xorm:"varchar(30) index" json:"conid"`
 	Confirmations uint64      `xorm:"bigint" json:"confirmations"`
 	Txsvaild      bool        `xorm:"bool" json:"txsvaild"`
 	IsCoinbase    bool        `xorm:"bool " json:"iscoinbase"`
-	IsBlue        bool 		  `xorm:"bool" json:"isblue"`
+	IsBlue        bool        `xorm:"bool" json:"isblue"`
 	Change        int64       `xorm:"bigint index" json:"change"`
 	Fees          uint64      `xorm:"bigint" json:"fees"`
 	Timestamp     int64       `xorm:"bigint" json:"timestamp"`
@@ -88,7 +88,7 @@ type Vin struct {
 	Number        int         `xorm:"int index" json:"number"`
 	Order         uint64      `xorm:"bigint" json:"order"`
 	Timestamp     int64       `xorm:"bigint" json:"timestamp"`
-	Address       string      `xorm:"varchar(35) index" json:"address"`
+	Address       string      `xorm:"varchar(65) index" json:"address"`
 	CoinId        string      `xorm:"varchar(5)" json:"conid"`
 	Amount        uint64      `xorm:"bigint" json:"amount"`
 	SpentedTx     string      `xorm:"varchar(64)" json:"spentedtx"`
@@ -107,11 +107,11 @@ type Vout struct {
 	Order         uint64        `xorm:"bigint" json:"order"`
 	Height        uint64        `xorm:"bigint" json:"height"`
 	Timestamp     int64         `xorm:"bigint" json:"timestamp"`
-	Address       string        `xorm:"varchar(35) index" json:"address"`
+	Address       string        `xorm:"varchar(65) index" json:"address"`
 	Amount        uint64        `xorm:"bigint" json:"amount"`
 	CoinId        string        `xorm:"varchar(30)" json:"coinid"`
-	IsCoinbase    bool 			`xorm:"bool" json:"iscoinbase"`
-	IsBlue        bool 			`xorm:"bool" json:"isblue"`
+	IsCoinbase    bool          `xorm:"bool" json:"iscoinbase"`
+	IsBlue        bool          `xorm:"bool" json:"isblue"`
 	ScriptPubKey  *ScriptPubKey `xorm:"json" json:"scriptpubkey"`
 	SpentTx       string        `xorm:"varchar(64)" json:"spenttx"`
 	Confirmations uint64        `xorm:"bigint" json:"confirmations"`
