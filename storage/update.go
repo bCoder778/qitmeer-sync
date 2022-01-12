@@ -61,7 +61,6 @@ func (s *Storage) UpdateBlock(rpcBlock *rpc.Block) error {
 		return err
 	}
 
-
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -96,7 +95,7 @@ func (s *Storage) UpdateTransactionStat(txId string, confirmations uint64, stat 
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	return s.db.UpdateTransactionStat(txId,  confirmations, stat)
+	return s.db.UpdateTransactionStat(txId, confirmations, stat)
 }
 
 func (s *Storage) crateBlock(rpcBlock *rpc.Block) *types.Block {
@@ -125,7 +124,7 @@ func (s *Storage) crateBlock(rpcBlock *rpc.Block) *types.Block {
 		PowType:       rpcBlock.Pow.PowType,
 		Nonce:         strconv.FormatUint(rpcBlock.Pow.Nonce, 10),
 		Address:       miner.Address,
-		PeerId:		   rpcBlock.PeerId(),
+		PeerId:        rpcBlock.PeerId(),
 		Amount:        miner.Amount,
 	}
 	if rpcBlock.Pow.ProofData != nil {
@@ -148,7 +147,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 		isCoinbase := s.verify.IsCoinBase(&rpcTx)
 		addressInOut := NewAddressInOutMap()
 		status := s.verify.TransactionStat(&rpcTx, color)
-		if isTransfer{
+		if isTransfer {
 			status = stat.TxStat(rpcTx.Stat)
 		}
 
@@ -163,7 +162,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 				address = "coinbase"
 				vinAddress = address
 			} else if vin.Txid != "0000000000000000000000000000000000000000000000000000000000000000" && vin.Type != "TxTypeTokenNew" &&
-				vin.Type != "TxTypeTokenMint" {
+				vin.Type != "TxTypeTokenMint" && vin.Txid != "" {
 				vout, err := s.db.GetVout(vin.Txid, vin.Vout)
 				if err != nil {
 					return nil, fmt.Errorf("query txid %s, vout=%d failed!", vin.Txid, vin.Vout)
@@ -176,7 +175,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 					}
 				}
 
-				if index == 0{
+				if index == 0 {
 					vinAddress = vout.Address
 				}
 				// 添加需要更新的被花费vout
@@ -208,10 +207,10 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 					Confirmations: rpcTx.Confirmations,
 					Stat:          status,
 					Timestamp:     rpcTx.Timestamp.Unix(),
-					Duplicate: rpcTx.Duplicate,
+					Duplicate:     rpcTx.Duplicate,
 				}
 				vins = append(vins, newVin)
-			}else{
+			} else {
 				vinAddress = "Token"
 			}
 		}
@@ -235,7 +234,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 			default:
 				continue
 			}
-			if index == 0{
+			if index == 0 {
 				voutAddress = vout.ScriptPubKey.Addresses[0]
 			}
 			if vout.CoinID == "" {
@@ -243,13 +242,13 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 				vout.CoinID = verify.PMEERID
 			}
 			newVout := &types.Vout{
-				TxId:    rpcTx.Txid,
-				Height:  height,
-				Order:   order,
-				Address: vout.ScriptPubKey.Addresses[0],
-				Amount:  vout.Amount,
-				CoinId:  vout.CoinID,
-				Number:  index,
+				TxId:       rpcTx.Txid,
+				Height:     height,
+				Order:      order,
+				Address:    vout.ScriptPubKey.Addresses[0],
+				Amount:     vout.Amount,
+				CoinId:     vout.CoinID,
+				Number:     index,
 				IsCoinbase: isCoinbase,
 				IsBlue:     color == 1,
 				ScriptPubKey: &types.ScriptPubKey{
@@ -263,7 +262,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 				Stat:          status,
 				Timestamp:     rpcTx.Timestamp.Unix(),
 				Lock:          lock,
-				Duplicate: rpcTx.Duplicate,
+				Duplicate:     rpcTx.Duplicate,
 			}
 			totalVout += vout.Amount
 			vouts = append(vouts, newVout)
@@ -274,7 +273,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 			fees = totalVin - totalVout
 		}
 		txTime := rpcTx.Timestamp.Unix()
-		if blockTime != 0 && isCoinbase{
+		if blockTime != 0 && isCoinbase {
 			txTime = blockTime
 		}
 		tx := &types.Transaction{
@@ -290,8 +289,8 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 			Confirmations: rpcTx.Confirmations,
 			Txsvaild:      rpcTx.Txsvalid,
 			IsCoinbase:    isCoinbase,
-			VinAmount :    totalVin,
-			VoutAmount :   totalVout,
+			VinAmount:     totalVin,
+			VoutAmount:    totalVout,
 			VinAddress:    vinAddress,
 			VoutAddress:   voutAddress,
 			Vins:          len(rpcTx.Vin),
@@ -315,7 +314,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 				CoinId:        change.CoinID,
 				Txsvaild:      tx.Txsvaild,
 				IsCoinbase:    isCoinbase,
-				IsBlue:		   color == 1,
+				IsBlue:        color == 1,
 				Change:        change.Change,
 				Timestamp:     tx.Timestamp,
 				Fees:          tx.Fees,
