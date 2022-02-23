@@ -247,6 +247,7 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 			block, err := qs.getBlockById(start)
 			if err != nil {
 				if strings.Contains(err.Error(), "no node") {
+					log.Debugf("no node %s", start)
 					start++
 					continue
 				}

@@ -190,9 +190,6 @@ func updateVins(sess *xorm.Session, vins []*types.Vin) error {
 		if ok, err := sess.Where("tx_id = ?  and number = ?", vin.TxId, vin.Number).Get(queryVin); err != nil {
 			return fmt.Errorf("faild to seesion exist vinout, %s", err.Error())
 		} else if ok {
-			if vin.Duplicate{
-				continue
-			}
 			if queryVin.Stat != stat.TX_Confirmed {
 				cols = append(cols, "stat")
 			}
@@ -215,20 +212,17 @@ func updateVouts(sess *xorm.Session, vouts []*types.Vout) error {
 	for _, vout := range vouts {
 
 		queryVout := &types.Vout{}
-		cols := []string{`order`, `height`, `timestamp`, `address`, `amount`,`script_pub_key`, `is_blue`,`vout`, `lock`}
+		cols := []string{`order`, `height`, `timestamp`, `address`, `amount`, `script_pub_key`, `is_blue`, `vout`, `lock`}
 		if ok, err := sess.Where("tx_id = ?  and number = ?", vout.TxId, vout.Number).Get(queryVout); err != nil {
 			return fmt.Errorf("faild to seesion exist vinout, %s", err.Error())
 		} else if ok {
-			if vout.Duplicate{
-				continue
-			}
 			if vout.SpentTx != "" {
 				cols = append(cols, `spent_tx`)
 			}
 			if queryVout.Stat != stat.TX_Confirmed {
 				cols = append(cols, `stat`)
 			}
-			if queryVout.Confirmations < vout.Confirmations{
+			if queryVout.Confirmations < vout.Confirmations {
 				cols = append(cols, `confirmations`)
 			}
 
@@ -261,10 +255,9 @@ func updateTransactions(sess *xorm.Session, txs []*types.Transaction) error {
 	for _, tx := range txs {
 		queryTx := &types.Transaction{}
 
+		cols := []string{`vin_amount`, `vout_amount`, `block_order`, `block_hash`, `tx_hash`, `expire`, `confirmations`, `txsvaild`, `duplicate`}
 
-		cols := []string{`vin_amount`,`vout_amount`,`block_order`, `block_hash`, `tx_hash`, `expire`, `confirmations`, `txsvaild`, `duplicate`}
-
-		if tx.BlockHash == "" || tx.Stat == stat.TX_Memry{
+		if tx.BlockHash == "" || tx.Stat == stat.TX_Memry {
 			if ok, err := sess.Where("tx_id = ?", tx.TxId).Get(queryTx); err != nil {
 				return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
 			} else if ok {
@@ -274,7 +267,7 @@ func updateTransactions(sess *xorm.Session, txs []*types.Transaction) error {
 					return fmt.Errorf("insert transction %s error, %s", tx.TxId, err)
 				}
 			}
-		}else{
+		} else {
 			if ok, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, "").Get(queryTx); err != nil {
 				return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
 			} else if ok {
@@ -287,7 +280,7 @@ func updateTransactions(sess *xorm.Session, txs []*types.Transaction) error {
 				if ok, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).Get(queryTx); err != nil {
 					return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
 				} else if ok {
-					if queryTx.Stat != stat.TX_Confirmed{
+					if queryTx.Stat != stat.TX_Confirmed {
 						cols = append(cols, "stat")
 					}
 					if _, err := sess.Where("tx_id = ? and block_hash = ?", tx.TxId, tx.BlockHash).
@@ -315,15 +308,12 @@ func updateTransfers(sess *xorm.Session, transfers []*types.Transfer) error {
 		if ok, err := sess.Where("tx_id = ? and address = ? and coin_id = ?", tras.TxId, tras.Address, tras.CoinId).Get(queryTransfer); err != nil {
 			return fmt.Errorf("faild to seesion exist tx, %s", err.Error())
 		} else if ok {
-			if tras.Duplicate{
-				continue
-			}
 			if queryTransfer.Stat == stat.TX_Confirmed {
 				if _, err := sess.Where("tx_id = ? and address = ? and coin_id = ?", tras.TxId, tras.Address, tras.CoinId).
 					Cols(cols...).Update(tras); err != nil {
 					return err
 				}
-			}else{
+			} else {
 				if _, err := sess.Where("tx_id = ? and address = ? and coin_id = ?", tras.TxId, tras.Address, tras.CoinId).
 					Cols(colsHasStat...).Update(tras); err != nil {
 					return err
@@ -394,26 +384,26 @@ func (d *DB) UpdateTransactionStat(txId string, confirmations uint64, txStat sta
 	}
 	if _, err := sess.Where("tx_id = ?", txId).
 		Cols(`stat`, `confirmations`).
-		Update(&types.Transaction{Stat:txStat, Confirmations: confirmations}); err != nil {
+		Update(&types.Transaction{Stat: txStat, Confirmations: confirmations}); err != nil {
 		return err
 	}
 
 	if _, err := sess.Where("tx_id = ?", txId).
-		Cols(`stat`,  `confirmations`).
+		Cols(`stat`, `confirmations`).
 		Update(&types.Vin{TxId: txId, Stat: txStat, Confirmations: confirmations}); err != nil {
 		return err
 	}
 	if _, err := sess.Where("tx_id = ?", txId).
-		Cols(`stat`,  `confirmations`).
+		Cols(`stat`, `confirmations`).
 		Update(&types.Vout{TxId: txId, Stat: txStat, Confirmations: confirmations}); err != nil {
 		return err
 	}
 	if _, err := sess.Where("tx_id = ?", txId).
-		Cols(`stat`,  `confirmations`).
+		Cols(`stat`, `confirmations`).
 		Update(&types.Transfer{TxId: txId, Stat: txStat, Confirmations: confirmations}); err != nil {
 		return err
 	}
-	if txStat == stat.TX_Failed{
+	if txStat == stat.TX_Failed {
 		if _, err := sess.Where("spent_tx = ?", txId).
 			Cols("spent_tx").
 			Update(&types.Vout{SpentTx: ""}); err != nil {
@@ -425,4 +415,3 @@ func (d *DB) UpdateTransactionStat(txId string, confirmations uint64, txStat sta
 	}
 	return nil
 }
-
