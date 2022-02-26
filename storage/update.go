@@ -162,7 +162,8 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 				address = "coinbase"
 				vinAddress = address
 			} else if vin.Txid != "0000000000000000000000000000000000000000000000000000000000000000" && vin.Type != "TxTypeTokenNew" &&
-				vin.Type != "TxTypeTokenMint" && vin.Type != "TxTypeCrossChainVM" && vin.Type != "TxTypeCrossChainExport" {
+				vin.Type != "TxTypeTokenMint" && vin.Type != "TxTypeCrossChainVM" && vin.Type != "TxTypeCrossChainExport" &&
+				vin.Type != "TxTypeCrossChainImport" {
 				vout, err := s.db.GetVout(vin.Txid, vin.Vout)
 				if err != nil {
 					return nil, fmt.Errorf("query txid %s, vout=%d failed!", vin.Txid, vin.Vout)
