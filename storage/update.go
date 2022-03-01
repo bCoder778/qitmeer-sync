@@ -6,7 +6,6 @@ import (
 	"github.com/bCoder778/qitmeer-sync/rpc"
 	"github.com/bCoder778/qitmeer-sync/storage/types"
 	"github.com/bCoder778/qitmeer-sync/utils"
-	"github.com/bCoder778/qitmeer-sync/verify"
 	"github.com/bCoder778/qitmeer-sync/verify/stat"
 	"strconv"
 	"strings"
@@ -250,10 +249,6 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 						return nil, fmt.Errorf("wrong address %s, %s", vout.ScriptPubKey.Addresses[0], err.Error())
 					}
 				}
-			}
-			if vout.CoinID == "" {
-				// 0.9的网络
-				vout.CoinID = verify.PMEERID
 			}
 			newVout := &types.Vout{
 				TxId:       rpcTx.Txid,
