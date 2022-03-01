@@ -142,6 +142,8 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 	transfers := []*types.Transfer{}
 	vinAddress := ""
 	voutAddress := ""
+	voutPKAddress := ""
+	voutEVMAddress := ""
 
 	for _, rpcTx := range rpcTxs {
 		isCoinbase := s.verify.IsCoinBase(&rpcTx)
@@ -157,7 +159,6 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 				address string
 				amount  uint64
 			)
-
 			if vin.Coinbase != "" {
 				address = "coinbase"
 				vinAddress = address
@@ -222,7 +223,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 			var lock uint64
 			switch vout.ScriptPubKey.Type {
 			case "pubkeyhash":
-
+			case "pubkey":
 			case "cltvpubkeyhash":
 				codes := strings.Split(vout.ScriptPubKey.Asm, " ")
 				if len(codes) == 0 {
@@ -232,11 +233,23 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 				if err != nil {
 					return nil, fmt.Errorf("little hex %s to uint64 error, %s", codes[0], err.Error())
 				}
-			default:
-				continue
 			}
 			if index == 0 {
-				voutAddress = vout.ScriptPubKey.Addresses[0]
+				if utils.IsPkAddress(vout.ScriptPubKey.Addresses[0]) {
+					voutAddress, err = utils.PkAddressToAddress(vout.ScriptPubKey.Addresses[0])
+					if err != nil {
+						return nil, fmt.Errorf("wrong address %s, %s", vout.ScriptPubKey.Addresses[0], err.Error())
+					}
+					voutPKAddress = vout.ScriptPubKey.Addresses[0]
+				} else {
+					voutAddress = vout.ScriptPubKey.Addresses[0]
+				}
+				if vout.CoinID == "ETH" {
+					voutEVMAddress, err = utils.PkAddressToEVMAddress(vout.ScriptPubKey.Addresses[0])
+					if err != nil {
+						return nil, fmt.Errorf("wrong address %s, %s", vout.ScriptPubKey.Addresses[0], err.Error())
+					}
+				}
 			}
 			if vout.CoinID == "" {
 				// 0.9的网络
@@ -246,7 +259,9 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 				TxId:       rpcTx.Txid,
 				Height:     height,
 				Order:      order,
-				Address:    vout.ScriptPubKey.Addresses[0],
+				Address:    voutAddress,
+				PKAddress:  voutPKAddress,
+				EVMAddress: voutEVMAddress,
 				Amount:     vout.Amount,
 				CoinId:     vout.CoinID,
 				Number:     index,

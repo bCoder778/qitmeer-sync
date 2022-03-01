@@ -108,6 +108,8 @@ type Vout struct {
 	Height        uint64        `xorm:"bigint" json:"height"`
 	Timestamp     int64         `xorm:"bigint" json:"timestamp"`
 	Address       string        `xorm:"varchar(65) index" json:"address"`
+	PKAddress     string        `xorm:"varchar(65) index pk_address" json:"pkAddress"`
+	EVMAddress    string        `xorm:"varchar(65) index evm_address" json:"evmAddress"`
 	Amount        uint64        `xorm:"bigint" json:"amount"`
 	CoinId        string        `xorm:"varchar(30)" json:"coinid"`
 	IsCoinbase    bool          `xorm:"bool" json:"iscoinbase"`

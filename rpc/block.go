@@ -40,11 +40,10 @@ type ProofData struct {
 	CircleNonces string `json:"circle_nonces"`
 }
 
-
-func (b *Block)PeerId()string{
-	for _, tx := range b.Transactions{
-		peerId :=  tx.PeerId()
-		if peerId != ""{
+func (b *Block) PeerId() string {
+	for _, tx := range b.Transactions {
+		peerId := tx.PeerId()
+		if peerId != "" {
 			return peerId
 		}
 	}
@@ -69,7 +68,7 @@ type Transaction struct {
 	Duplicate     bool      `json:"duplicate"`
 	BlockHash     string    `json:"blockhash"`
 	BlockOrder    uint64    `json:"blockorder"`
-	BlockHeight    uint64   `json:"blockheight"`
+	BlockHeight   uint64    `json:"blockheight"`
 	Size          int       `json:"size"`
 	Stat          int
 }
@@ -110,13 +109,13 @@ type ScriptPubKey struct {
 	Addresses []string `json:"addresses"`
 }
 
-func (t *Transaction)IsCoinbase() bool {
+func (t *Transaction) IsCoinbase() bool {
 	return t.Vin[0].Coinbase != ""
 }
 
-func (t *Transaction)PeerId() string {
-	if t.Vin[0].Coinbase != ""{
-		coinbase , _ := hex.DecodeString(t.Vin[0].Coinbase)
+func (t *Transaction) PeerId() string {
+	if t.Vin[0].Coinbase != "" {
+		coinbase, _ := hex.DecodeString(t.Vin[0].Coinbase)
 		r, _ := regexp.Compile(`16U(\w*)`)
 		return string(r.Find(coinbase))
 	}
