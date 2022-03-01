@@ -153,11 +153,15 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 		}
 
 		var totalVin, totalVout, fees uint64
+		var isEVM = false
 		for index, vin := range rpcTx.Vin {
 			var (
 				address string
 				amount  uint64
 			)
+			if vin.Type == "TxTypeCrossChainVM" {
+				isEVM = true
+			}
 			if vin.Coinbase != "" {
 				address = "coinbase"
 				vinAddress = address
@@ -218,6 +222,9 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 
 		var err error
 		// 添加新的vout
+		if isEVM {
+			continue
+		}
 		for index, vout := range rpcTx.Vout {
 			var lock uint64
 			switch vout.ScriptPubKey.Type {
