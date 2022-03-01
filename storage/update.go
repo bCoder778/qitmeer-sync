@@ -240,21 +240,22 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 					return nil, fmt.Errorf("little hex %s to uint64 error, %s", codes[0], err.Error())
 				}
 			}
-			if index == 0 {
-				if utils.IsPkAddress(vout.ScriptPubKey.Addresses[0]) {
-					voutAddress, err = utils.PkAddressToAddress(vout.ScriptPubKey.Addresses[0])
-					if err != nil {
-						return nil, fmt.Errorf("wrong address %s, %s", vout.ScriptPubKey.Addresses[0], err.Error())
-					}
-					voutPKAddress = vout.ScriptPubKey.Addresses[0]
-				} else {
-					voutAddress = vout.ScriptPubKey.Addresses[0]
+			if vout.ScriptPubKey.Addresses == nil {
+				continue
+			}
+			if utils.IsPkAddress(vout.ScriptPubKey.Addresses[0]) {
+				voutAddress, err = utils.PkAddressToAddress(vout.ScriptPubKey.Addresses[0])
+				if err != nil {
+					return nil, fmt.Errorf("wrong address %s, %s", vout.ScriptPubKey.Addresses[0], err.Error())
 				}
-				if vout.CoinID == "ETH" {
-					voutEVMAddress, err = utils.PkAddressToEVMAddress(vout.ScriptPubKey.Addresses[0])
-					if err != nil {
-						return nil, fmt.Errorf("wrong address %s, %s", vout.ScriptPubKey.Addresses[0], err.Error())
-					}
+				voutPKAddress = vout.ScriptPubKey.Addresses[0]
+			} else {
+				voutAddress = vout.ScriptPubKey.Addresses[0]
+			}
+			if vout.CoinID == "ETH" {
+				voutEVMAddress, err = utils.PkAddressToEVMAddress(vout.ScriptPubKey.Addresses[0])
+				if err != nil {
+					return nil, fmt.Errorf("wrong address %s, %s", vout.ScriptPubKey.Addresses[0], err.Error())
 				}
 			}
 			newVout := &types.Vout{
