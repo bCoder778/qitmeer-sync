@@ -139,12 +139,12 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 	vouts := []*types.Vout{}
 	spentedVouts := []*types.Vout{}
 	transfers := []*types.Transfer{}
-	vinAddress := ""
-	voutAddress := ""
-	voutPKAddress := ""
-	voutEVMAddress := ""
 
 	for _, rpcTx := range rpcTxs {
+		vinAddress := ""
+		voutAddress := ""
+		voutPKAddress := ""
+		voutEVMAddress := ""
 		isCoinbase := s.verify.IsCoinBase(&rpcTx)
 		addressInOut := NewAddressInOutMap()
 		status := s.verify.TransactionStat(&rpcTx, color)
@@ -165,56 +165,72 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 			if vin.Coinbase != "" {
 				address = "coinbase"
 				vinAddress = address
-			} else if vin.Txid != "0000000000000000000000000000000000000000000000000000000000000000" && vin.Type != "TxTypeTokenNew" &&
-				vin.Type != "TxTypeTokenMint" && vin.Type != "TxTypeCrossChainVM" && vin.Type != "TxTypeCrossChainExport" &&
-				vin.Type != "TxTypeCrossChainImport" {
-				vout, err := s.db.GetVout(vin.Txid, vin.Vout)
-				if err != nil {
-					return nil, fmt.Errorf("query txid %s, vout=%d failed!", vin.Txid, vin.Vout)
-				}
-
-				// 可能引用同一区块vout
-				if vout.TxId == "" {
-					if vout, err = s.finVout(vin.Txid, vin.Vout, vouts); err != nil {
+			} else if vin.Txid != "0000000000000000000000000000000000000000000000000000000000000000" {
+				if vin.Type != "" {
+					newVin := &types.Vin{
+						TxId:    rpcTx.Txid,
+						Number:  index,
+						Order:   order,
+						Address: vin.Type,
+						ScriptSig: &types.ScriptSig{
+							Hex: vin.ScriptSig.Hex,
+							Asm: vin.ScriptSig.Asm,
+						},
+						Confirmations: rpcTx.Confirmations,
+						Stat:          status,
+						Timestamp:     rpcTx.Timestamp.Unix(),
+						Duplicate:     rpcTx.Duplicate,
+					}
+					vins = append(vins, newVin)
+				} else {
+					vout, err := s.db.GetVout(vin.Txid, vin.Vout)
+					if err != nil {
 						return nil, fmt.Errorf("query txid %s, vout=%d failed!", vin.Txid, vin.Vout)
 					}
-				}
 
-				if index == 0 {
-					vinAddress = vout.Address
-				}
-				// 添加需要更新的被花费vout
-				if status != stat.TX_Failed {
-					vout.SpentTx = rpcTx.Txid
-					spentedVouts = append(spentedVouts, vout)
-				}
+					// 可能引用同一区块vout
+					if vout.TxId == "" {
+						if vout, err = s.finVout(vin.Txid, vin.Vout, vouts); err != nil {
+							return nil, fmt.Errorf("query txid %s, vout=%d failed!", vin.Txid, vin.Vout)
+						}
+					}
 
-				// 添加新的vin
-				address = vout.Address
-				amount = vout.Amount
-				totalVin += amount
-				//fmt.Printf("address %s vin %d\n", address, amount)
-				addressInOut.AddAddressIn(address, vout.CoinId, int64(amount))
-				newVin := &types.Vin{
-					TxId:      rpcTx.Txid,
-					SpentedTx: vout.TxId,
-					Order:     order,
-					Address:   address,
-					Vout:      vin.Vout,
-					CoinId:    vout.CoinId,
-					Amount:    amount,
-					Number:    index,
-					Sequence:  vin.Sequence,
-					ScriptSig: &types.ScriptSig{
-						Hex: vin.ScriptSig.Hex,
-						Asm: vin.ScriptSig.Asm,
-					},
-					Confirmations: rpcTx.Confirmations,
-					Stat:          status,
-					Timestamp:     rpcTx.Timestamp.Unix(),
-					Duplicate:     rpcTx.Duplicate,
+					if index == 0 {
+						vinAddress = vout.Address
+					}
+					// 添加需要更新的被花费vout
+					if status != stat.TX_Failed {
+						vout.SpentTx = rpcTx.Txid
+						spentedVouts = append(spentedVouts, vout)
+					}
+
+					// 添加新的vin
+					address = vout.Address
+					amount = vout.Amount
+					totalVin += amount
+					//fmt.Printf("address %s vin %d\n", address, amount)
+					addressInOut.AddAddressIn(address, vout.CoinId, int64(amount))
+					newVin := &types.Vin{
+						TxId:      rpcTx.Txid,
+						SpentedTx: vout.TxId,
+						Order:     order,
+						Address:   address,
+						Vout:      vin.Vout,
+						CoinId:    vout.CoinId,
+						Amount:    amount,
+						Number:    index,
+						Sequence:  vin.Sequence,
+						ScriptSig: &types.ScriptSig{
+							Hex: vin.ScriptSig.Hex,
+							Asm: vin.ScriptSig.Asm,
+						},
+						Confirmations: rpcTx.Confirmations,
+						Stat:          status,
+						Timestamp:     rpcTx.Timestamp.Unix(),
+						Duplicate:     rpcTx.Duplicate,
+					}
+					vins = append(vins, newVin)
 				}
-				vins = append(vins, newVin)
 			} else {
 				vinAddress = "Token"
 			}

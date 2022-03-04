@@ -8,12 +8,12 @@ type Block struct {
 	Id            uint64         `xorm:"bigint pk" json:"id"`
 	Hash          string         `xorm:"varchar(64) index" json:"hash"`
 	Txvalid       bool           `xorm:"bool" json:"txvalid"`
-	Confirmations uint64         `xorm:"bigint" json:"confirmation"`
+	Confirmations uint64         `xorm:"bigint index" json:"confirmation"`
 	Version       uint32         `xorm:"int" json:"version"`
 	Weight        uint64         `xorm:"bigint" json:"weight"`
 	Height        uint64         `xorm:"bigint" json:"height"`
 	TxRoot        string         `xorm:"varchar(64)" json:"txroot"`
-	Order         uint64         `xorm:"bigint" json:"order"`
+	Order         uint64         `xorm:"bigint index" json:"order"`
 	Transactions  int            `xorm:"int" json:"transactions"`
 	StateRoot     string         `xorm:"varchar(64)" json:"stateroot"`
 	Bits          string         `xorm:"varchar(64)" json:"bits"`
@@ -31,7 +31,7 @@ type Block struct {
 	Amount        uint64         `xorm:"bigint" json:"amount"`
 	PeerId        string         `xorm:"varchar(64)" json:"peerid"`
 	Color         stat.Color     `xorm:"int" json:"color"`
-	Stat          stat.BlockStat `xorm:"int" json:"stat"`
+	Stat          stat.BlockStat `xorm:"int index" json:"stat"`
 }
 
 type Miner struct {
@@ -62,7 +62,7 @@ type Transaction struct {
 	Vouts         int         `xorm:"int" json:"vout"`
 	Fees          uint64      `xorm:"bigint" json:"fees"`
 	Duplicate     bool        `xorm:"bool" json:"duplicate"`
-	Stat          stat.TxStat `xorm:"int" json:"stat"`
+	Stat          stat.TxStat `xorm:"int index" json:"stat"`
 }
 
 type Transfer struct {
@@ -73,12 +73,12 @@ type Transfer struct {
 	CoinId        string      `xorm:"varchar(30) index" json:"conid"`
 	Confirmations uint64      `xorm:"bigint" json:"confirmations"`
 	Txsvaild      bool        `xorm:"bool" json:"txsvaild"`
-	IsCoinbase    bool        `xorm:"bool " json:"iscoinbase"`
+	IsCoinbase    bool        `xorm:"bool index" json:"iscoinbase"`
 	IsBlue        bool        `xorm:"bool" json:"isblue"`
 	Change        int64       `xorm:"bigint index" json:"change"`
 	Fees          uint64      `xorm:"bigint" json:"fees"`
 	Timestamp     int64       `xorm:"bigint" json:"timestamp"`
-	Stat          stat.TxStat `xorm:"int" json:"stat"`
+	Stat          stat.TxStat `xorm:"int index" json:"stat"`
 	Duplicate     bool
 }
 
@@ -89,7 +89,7 @@ type Vin struct {
 	Order         uint64      `xorm:"bigint" json:"order"`
 	Timestamp     int64       `xorm:"bigint" json:"timestamp"`
 	Address       string      `xorm:"varchar(65) index" json:"address"`
-	CoinId        string      `xorm:"varchar(5)" json:"conid"`
+	CoinId        string      `xorm:"varchar(5) index" json:"conid"`
 	Amount        uint64      `xorm:"bigint" json:"amount"`
 	SpentedTx     string      `xorm:"varchar(64)" json:"spentedtx"`
 	Vout          int         `xorm:"int index(queryvin)" json:"vout"`
@@ -111,14 +111,14 @@ type Vout struct {
 	PKAddress     string        `xorm:"varchar(65) index pk_address" json:"pkAddress"`
 	EVMAddress    string        `xorm:"varchar(65) index evm_address" json:"evmAddress"`
 	Amount        uint64        `xorm:"bigint" json:"amount"`
-	CoinId        string        `xorm:"varchar(30)" json:"coinid"`
-	IsCoinbase    bool          `xorm:"bool" json:"iscoinbase"`
-	IsBlue        bool          `xorm:"bool" json:"isblue"`
+	CoinId        string        `xorm:"varchar(30) index" json:"coinid"`
+	IsCoinbase    bool          `xorm:"bool index" json:"iscoinbase"`
+	IsBlue        bool          `xorm:"bool index" json:"isblue"`
 	ScriptPubKey  *ScriptPubKey `xorm:"json" json:"scriptpubkey"`
-	SpentTx       string        `xorm:"varchar(64)" json:"spenttx"`
+	SpentTx       string        `xorm:"varchar(64) index" json:"spenttx"`
 	Confirmations uint64        `xorm:"bigint" json:"confirmations"`
-	Stat          stat.TxStat   `xorm:"int" json:"stat"`
-	Lock          uint64        `xorm:"bigint" json:"lock"`
+	Stat          stat.TxStat   `xorm:"int index" json:"stat"`
+	Lock          uint64        `xorm:"bigint index" json:"lock"`
 	Duplicate     bool
 }
 
