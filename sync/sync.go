@@ -251,7 +251,7 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 					if err == nil {
 						lastOrder := qs.storage.LastOrder()
 						if lastOrder < nodeInfo.GraphState.MainOrder {
-							log.Debugf("no sys %s", start)
+							log.Debugf("no sys %d", start)
 							start++
 							continue
 						}
