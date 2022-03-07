@@ -54,18 +54,18 @@ func (qs *QitmeerSync) Stop() {
 func (qs *QitmeerSync) Run() {
 	qs.wg.Add(1)
 	go qs.syncBlock()
-	/*
-		qs.wg.Add(1)
-		go qs.syncTxPool()
 
-		qs.wg.Add(1)
-		go qs.updateUnconfirmedBlock()
+	qs.wg.Add(1)
+	go qs.syncTxPool()
 
-		qs.wg.Add(1)
-		go qs.updateUnconfirmedTransaction()
+	qs.wg.Add(1)
+	go qs.updateUnconfirmedBlock()
 
-		qs.wg.Add(1)
-		go qs.updateCoins()*/
+	qs.wg.Add(1)
+	go qs.updateUnconfirmedTransaction()
+
+	qs.wg.Add(1)
+	go qs.updateCoins()
 
 	qs.wg.Wait()
 	if err := qs.storage.Close(); err != nil {
@@ -256,6 +256,7 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 						}
 					}
 				}
+
 				log.Debugf("Request block id %d failed! %s", start, err.Error())
 				time.Sleep(time.Second * waitBlockTime)
 				continue
