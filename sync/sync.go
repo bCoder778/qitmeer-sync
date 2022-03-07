@@ -261,7 +261,9 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 				time.Sleep(time.Second * waitBlockTime)
 				continue
 			}
-			lastOrder = block.Order
+			if block.Order != 0 {
+				lastOrder = block.Order
+			}
 			start++
 			qs.blockCh <- block
 		}
