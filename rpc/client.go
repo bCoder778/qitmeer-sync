@@ -18,55 +18,54 @@ import (
 
 type Client struct {
 	rpcAuth []*config.Rpc
-	main *config.Rpc
+	main    *config.Rpc
 }
 
 func NewClient(auth []*config.Rpc) *Client {
 	return &Client{rpcAuth: auth, main: auth[0]}
 }
 
-func (c *Client)TransactionStat(txid string, timestamp int64)(stat.TxStat){
+func (c *Client) TransactionStat(txid string, timestamp int64) stat.TxStat {
 	exist := false
 	notConfirmed := false
 	inBlock := false
-	for _, auth := range c.rpcAuth{
+	for _, auth := range c.rpcAuth {
 		tx, err := c.getTransaction(txid, auth)
 		if err != nil {
 			log.Warnf("%s, %s", auth.Host, err.Error())
 			notConfirmed = true
-			if isNotExist(err){
+			if isNotExist(err) {
 				continue
 			}
-		}else{
-			log.Debugf("%s, %s confirmations = %d", auth.Host,tx.Txid, tx.Confirmations)
+		} else {
+			log.Debugf("%s, %s confirmations = %d", auth.Host, tx.Txid, tx.Confirmations)
 			exist = true
-			if tx.Confirmations >= stat.Tx_Confirmed_Value{
-				return  stat.TX_Confirmed
+			if tx.Confirmations >= stat.Tx_Confirmed_Value {
+				return stat.TX_Confirmed
 			}
-			if tx.Confirmations < 1{
+			if tx.Confirmations < 1 {
 				notConfirmed = true
 			}
-			if tx.BlockHash != ""{
+			if tx.BlockHash != "" {
 				inBlock = true
 			}
 		}
 	}
-	if !exist{
-		if time.Now().Unix() - timestamp > 60 * 60 {
+	if !exist {
+		if time.Now().Unix()-timestamp > 60*60 {
 			return stat.TX_Failed
 		}
 		return stat.TX_Unconfirmed
-	}else{
-		if notConfirmed{
+	} else {
+		if notConfirmed {
 			return stat.TX_Unconfirmed
-		}else if inBlock{
+		} else if inBlock {
 			return stat.TX_Confirmed
-		}else{
+		} else {
 			return stat.TX_Memry
 		}
 	}
 }
-
 
 func isNotExist(err error) bool {
 	if strings.Contains(err.Error(), "No information available about transaction") {
@@ -162,7 +161,6 @@ func (c *Client) GetTransaction(txId string) (*Transaction, error) {
 	return c.getTransaction(txId, c.main)
 }
 
-
 func (c *Client) getTransaction(txId string, auth *config.Rpc) (*Transaction, error) {
 	params := []interface{}{txId, true}
 	resp := NewReqeust(params).SetMethod("getRawTransaction").call(auth)
@@ -180,22 +178,20 @@ func (c *Client) GetTransactionByBlockHash(txId string, hash string) (*Transacti
 	return c.getTransactionByBlockHash(txId, hash, c.main)
 }
 
-
-
 func (c *Client) getTransactionByBlockHash(txId string, hash string, auth *config.Rpc) (*Transaction, error) {
-	if hash == ""{
+	if hash == "" {
 		tx, err := c.getTransaction(txId, auth)
-		if err != nil{
+		if err != nil {
 			return nil, err
 		}
 		hash = tx.BlockHash
 	}
 	block, err := c.getBlockByHash(hash, auth)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
-	for _, tx := range block.Transactions{
-		if tx.Txid == txId{
+	for _, tx := range block.Transactions {
+		if tx.Txid == txId {
 			tx.BlockOrder = block.Order
 			tx.BlockHeight = block.Height
 			return &tx, nil
@@ -242,7 +238,6 @@ func (c *Client) IsBlue(hash string) (int, error) {
 	return c.isBlue(hash, c.main)
 }
 
-
 func (c *Client) isBlue(hash string, auth *config.Rpc) (int, error) {
 	params := []interface{}{hash}
 	resp := NewReqeust(params).SetMethod("isBlue").call(auth)
@@ -270,21 +265,21 @@ func (c *Client) getFees(hash string, auth *config.Rpc) (uint64, error) {
 	return strconv.ParseUint(string(resp.Result), 10, 64)
 }
 
-func (c *Client) GetPeerInfo() ([]PeerInfo, error) {
+func (c *Client) GetNodeInfo() (*NodeInfo, error) {
+	return c.getNodeInfo(c.main)
+}
+
+func (c *Client) getNodeInfo(auth *config.Rpc) (*NodeInfo, error) {
 	var params []interface{}
-	resp := NewReqeust(params).SetMethod("getPeerInfo").call(c.main)
+	resp := NewReqeust(params).SetMethod("getNodeInfo").call(c.main)
 	if resp.Error != nil {
 		return nil, errors.New(resp.Error.Message)
 	}
-	var rs []PeerInfo
+	var rs *NodeInfo
 	if err := json.Unmarshal(resp.Result, &rs); err != nil {
 		return nil, err
 	}
 	return rs, nil
-}
-
-func (c *Client) getPeerInfo(auth *config.Rpc) ([]PeerInfo, error) {
-	return c.getPeerInfo(auth)
 }
 
 func (c *Client) GetCoins() ([]types.Coin, error) {

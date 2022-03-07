@@ -246,10 +246,16 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 		default:
 			block, err := qs.getBlockById(start)
 			if err != nil {
-				if strings.Contains(err.Error(), "no node") {
-					log.Debugf("no node %s", start)
-					start++
-					continue
+				if strings.Contains(err.Error(), "no node") || strings.Contains(err.Error(), "no block") {
+					nodeInfo, err := qs.rpc.GetNodeInfo()
+					if err == nil {
+						lastOrder := qs.storage.LastOrder()
+						if lastOrder < nodeInfo.GraphState.MainOrder {
+							log.Debugf("no sys %s", start)
+							start++
+							continue
+						}
+					}
 				}
 				log.Debugf("Request block id %d failed! %s", start, err.Error())
 				time.Sleep(time.Second * waitBlockTime)
@@ -301,7 +307,7 @@ func (qs *QitmeerSync) requestUnconfirmedBlockByCount(count int) {
 			default:
 				block, err := qs.getBlockById(id)
 				if err != nil {
-					if strings.Contains(err.Error(), "no node") {
+					if strings.Contains(err.Error(), "no node") || strings.Contains(err.Error(), "no block") {
 						log.Debugf("Request no node block id %d failed! %s", id, err.Error())
 						continue
 					}
@@ -327,7 +333,7 @@ func (qs *QitmeerSync) requestUnconfirmedBlock() {
 			default:
 				block, err := qs.getBlockById(id)
 				if err != nil {
-					if strings.Contains(err.Error(), "no node") {
+					if strings.Contains(err.Error(), "no node") || strings.Contains(err.Error(), "no block") {
 						log.Debugf("Request no node block id %d failed! %s", id, err.Error())
 						continue
 					}

@@ -149,3 +149,7 @@ type PeerInfo struct {
 	SyncNode   bool       `json:"syncnode"`
 	GraphState GraphState `json:"graphstate"`
 }
+
+type NodeInfo struct {
+	GraphState GraphState `json:"graphstate"`
+}
