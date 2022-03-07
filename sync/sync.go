@@ -228,7 +228,7 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 		qs.storage.Set10GenesisUTXO(block0)
 		break
 	}
-
+	lastOrder := qs.storage.LastOrder()
 	start := qs.storage.LastId()
 	if start <= 5 {
 		start = 0
@@ -249,7 +249,6 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 				if strings.Contains(err.Error(), "no node") || strings.Contains(err.Error(), "no block") {
 					nodeInfo, err := qs.rpc.GetNodeInfo()
 					if err == nil {
-						lastOrder := qs.storage.LastOrder()
 						if lastOrder < nodeInfo.GraphState.MainOrder {
 							log.Debugf("no sys %d", start)
 							start++
@@ -257,6 +256,7 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 						}
 					}
 				}
+				lastOrder = block.Order
 				log.Debugf("Request block id %d failed! %s", start, err.Error())
 				time.Sleep(time.Second * waitBlockTime)
 				continue

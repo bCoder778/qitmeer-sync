@@ -10,14 +10,13 @@ import (
 func (d *DB) GetTransaction(txId string, blockHash string) (*types.Transaction, error) {
 	tx := &types.Transaction{}
 	ok, err := d.engine.Table(new(types.Transaction)).Where("tx_id = ? and block_hash = ?", txId, blockHash).Get(tx)
-	if !ok{
+	if !ok {
 		return nil, errors.New("not found")
 	}
 	return tx, err
 }
 
-
-func (d *DB)TransactionExist(txId string) bool{
+func (d *DB) TransactionExist(txId string) bool {
 	tx := &types.Transaction{}
 	ok, err := d.engine.Table(new(types.Transaction)).Where("tx_id = ?", txId).Get(tx)
 	fmt.Println(err)
@@ -32,7 +31,7 @@ func (d *DB) GetVout(txId string, vout int) (*types.Vout, error) {
 
 func (d *DB) GetLastOrder() (uint64, error) {
 	var block = &types.Block{}
-	_, err := d.engine.Table(new(types.Block)).Desc("order").Get(block)
+	_, err := d.engine.Table(new(types.Block)).Desc("order").Limit(1).Get(block)
 	return block.Order, err
 }
 
