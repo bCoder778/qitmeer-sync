@@ -228,7 +228,6 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 		qs.storage.Set10GenesisUTXO(block0)
 		break
 	}
-	lastOrder := qs.storage.LastOrder()
 	start := qs.storage.LastId()
 	if start <= 5 {
 		start = 0
@@ -260,9 +259,6 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 				log.Debugf("Request block id %d failed! %s", start, err.Error())
 				time.Sleep(time.Second * waitBlockTime)
 				continue
-			}
-			if block.Order != 0 {
-				lastOrder = block.Order
 			}
 			start++
 			qs.blockCh <- block
