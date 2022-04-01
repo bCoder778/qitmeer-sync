@@ -249,7 +249,7 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 				if strings.Contains(err.Error(), "no node") || strings.Contains(err.Error(), "no block") {
 					nodeInfo, err := qs.rpc.GetNodeInfo()
 					if err == nil {
-						if lastOrder < nodeInfo.GraphState.MainOrder {
+						if start < nodeInfo.GraphState.MainOrder {
 							log.Debugf("no sys %d", start)
 							start++
 							continue
