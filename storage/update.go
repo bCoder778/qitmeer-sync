@@ -375,7 +375,7 @@ func (s *Storage) BlockMiner(rpcBlock *rpc.Block) *types.Miner {
 	for _, tx := range rpcBlock.Transactions {
 		if len(tx.Vin) == 1 {
 			for _, vin := range tx.Vin {
-				if vin.Coinbase != "" {
+				if vin.Coinbase != "" && tx.Vout[0].ScriptPubKey.Addresses != nil {
 					return &types.Miner{Address: tx.Vout[0].ScriptPubKey.Addresses[0], Amount: tx.Vout[0].Amount}
 				}
 			}
