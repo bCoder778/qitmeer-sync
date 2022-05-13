@@ -13,7 +13,8 @@ func (d *DB) QueryUnConfirmedOrders() ([]uint64, error) {
 
 func (d *DB) QueryUnConfirmedIds() ([]uint64, error) {
 	ids := []uint64{}
-	err := d.engine.Table(new(types.Block)).Where("stat = ?", stat.Block_Unconfirmed).Cols("id").Find(&ids)
+	err := d.engine.Table(new(types.Block)).Where("(stat = ? and block.order != 0) or (stat = 1 and block.order = 0 and color != 2)", stat.Block_Unconfirmed).Cols("id").Find(&ids)
+
 	return ids, err
 }
 
