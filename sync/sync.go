@@ -26,7 +26,7 @@ type QitmeerSync struct {
 	uncfmBlockCh     chan *rpc.Block
 	uncfmTxCh        chan []rpc.Transaction
 	interupt         chan struct{}
-	wg               sync.WaitGroup
+	wg               *sync.WaitGroup
 	verifyFiledCount int
 }
 
@@ -41,7 +41,7 @@ func NewQitmeerSync() (*QitmeerSync, error) {
 		rpc:         rpc.NewClient(config.Setting.Rpc),
 		reBlockSync: make(chan struct{}, 1),
 		interupt:    make(chan struct{}, 1),
-		wg:          sync.WaitGroup{},
+		wg:          &sync.WaitGroup{},
 	}, nil
 }
 
@@ -245,20 +245,15 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 		default:
 			block, err := qs.getBlockById(start)
 			if err != nil {
-				if strings.Contains(err.Error(), "no node") || strings.Contains(err.Error(), "no block") {
-					nodeInfo, err := qs.rpc.GetNodeInfo()
-					if err == nil {
-						if start < nodeInfo.GraphState.MainOrder {
-							log.Debugf("no sys %d", start)
-							start++
-							continue
-						}
-					}
+				if strings.Contains(err.Error(), "no node") {
+					log.Debugf("no sys %d", start)
+					start++
+					continue
+				} else {
+					log.Debugf("Request block id %d failed! %s", start, err.Error())
+					time.Sleep(time.Second * waitBlockTime)
+					continue
 				}
-
-				log.Debugf("Request block id %d failed! %s", start, err.Error())
-				time.Sleep(time.Second * waitBlockTime)
-				continue
 			}
 			start++
 			qs.blockCh <- block

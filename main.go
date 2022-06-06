@@ -73,6 +73,8 @@ func runSync() {
 	sync, err := sync.NewQitmeerSync()
 	if err != nil {
 		log.Errorf("Create qitmeer sync failed! %v", err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
 	sync.Run()
 }
