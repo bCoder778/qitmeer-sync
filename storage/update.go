@@ -201,6 +201,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 					// 添加需要更新的被花费vout
 					if status != stat.TX_Failed {
 						vout.SpentTx = rpcTx.Txid
+						vout.Spented = true
 						spentedVouts = append(spentedVouts, vout)
 					}
 

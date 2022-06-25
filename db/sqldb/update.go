@@ -217,7 +217,7 @@ func updateVouts(sess *xorm.Session, vouts []*types.Vout) error {
 			return fmt.Errorf("faild to seesion exist vinout, %s", err.Error())
 		} else if ok {
 			if vout.SpentTx != "" {
-				cols = append(cols, `spent_tx`)
+				cols = append(cols, `spent_tx`, `spented`)
 			}
 			if queryVout.Stat != stat.TX_Confirmed {
 				cols = append(cols, `stat`)
@@ -243,7 +243,7 @@ func updateSpentedVinouts(sess *xorm.Session, vouts []*types.Vout) error {
 	// 更新spentedVouts
 	for _, vout := range vouts {
 		if _, err := sess.Where("tx_id = ? and number = ?", vout.TxId, vout.Number).
-			Cols("spent_tx").Update(vout); err != nil {
+			Cols("spent_tx", `spented`).Update(vout); err != nil {
 			return err
 		}
 	}
@@ -405,8 +405,8 @@ func (d *DB) UpdateTransactionStat(txId string, confirmations uint64, txStat sta
 	}
 	if txStat == stat.TX_Failed {
 		if _, err := sess.Where("spent_tx = ?", txId).
-			Cols("spent_tx").
-			Update(&types.Vout{SpentTx: ""}); err != nil {
+			Cols("spent_tx", "spented").
+			Update(&types.Vout{SpentTx: "", Spented: false}); err != nil {
 			return err
 		}
 	}

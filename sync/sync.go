@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	waitBlockTime = 5
+	waitBlockTime = 1
 )
 
 type QitmeerSync struct {

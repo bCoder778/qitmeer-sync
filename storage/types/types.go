@@ -116,9 +116,10 @@ type Vout struct {
 	IsBlue        bool          `xorm:"bool index" json:"isblue"`
 	ScriptPubKey  *ScriptPubKey `xorm:"json" json:"scriptpubkey"`
 	SpentTx       string        `xorm:"varchar(64) index" json:"spenttx"`
-	Confirmations uint64        `xorm:"bigint index" json:"confirmations"`
-	Stat          stat.TxStat   `xorm:"int index" json:"stat"`
-	Lock          uint64        `xorm:"bigint index" json:"lock"`
+	Spented       bool          `xorm:"bool spented" json:"spented"`
+	Confirmations uint64        `xorm:"bigint " json:"confirmations"`
+	Stat          stat.TxStat   `xorm:"int " json:"stat"`
+	Lock          uint64        `xorm:"bigint " json:"lock"`
 	Duplicate     bool
 }
 

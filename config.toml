@@ -1,20 +1,24 @@
 [[rpcs]]
-host="http://127.0.0.1:1234"
+host="http://203.86.236.20/mainnet"
 admin="admin"
 password="123"
 [[rpcs]]
-host="http://127.0.0.1:1234"
-admin="admin"
+host="http://203.86.236.20/mainnet"
+admin="qitmeer"
+password="123"
+[[rpcs]]
+host="http://203.86.236.20/mainnet"
+admin="qitmeer"
 password="123"
 
 
 [db]
 # mysql | sqlserver
 dbtype="mysql"
-user="root"
-password="111111"
-address="127.0.0.1:3306"
-dbname="qitmeer_testnet"
+user="client"
+password="Qitmeer@user.client"
+address="203.86.236.20:3306"
+dbname="mainnet"
 
 [log]
 # console=12 | file=11
