@@ -229,11 +229,12 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 		break
 	}
 	start := qs.storage.LastId()
-	if start <= 5 {
+	if start <= 2 {
 		start = 0
 	} else {
-		start -= 5
+		start -= 2
 	}
+	var lastOrder uint64
 	for {
 		select {
 		case <-qs.reBlockSync:
@@ -245,10 +246,17 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 		default:
 			block, err := qs.getBlockById(start)
 			if err != nil {
-				if strings.Contains(err.Error(), "no node") {
-					log.Debugf("no sys %d", start)
-					start++
-					continue
+				if strings.Contains(err.Error(), "no node") || strings.Contains(err.Error(), "no block") {
+					_, err := qs.rpc.GetBlock(lastOrder + 1)
+					if err != nil {
+						log.Debugf("Request block id %d failed! %s", start, err.Error())
+						time.Sleep(time.Second * waitBlockTime)
+						continue
+					} else {
+						log.Debugf("no sys %d", start)
+						start++
+						continue
+					}
 				} else {
 					log.Debugf("Request block id %d failed! %s", start, err.Error())
 					time.Sleep(time.Second * waitBlockTime)
@@ -256,6 +264,9 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 				}
 			}
 			start++
+			if block.Order != 0 {
+				lastOrder = block.Order
+			}
 			qs.blockCh <- block
 		}
 	}
