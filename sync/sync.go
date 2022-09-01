@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	waitBlockTime = 1
+	waitBlockTime = 5
 )
 
 type QitmeerSync struct {
@@ -234,7 +234,7 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 	} else {
 		start -= 2
 	}
-	var lastOrder uint64
+	var lastOrder uint64 = 0
 	for {
 		select {
 		case <-qs.reBlockSync:
@@ -246,17 +246,20 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 		default:
 			block, err := qs.getBlockById(start)
 			if err != nil {
-				if strings.Contains(err.Error(), "no node") || strings.Contains(err.Error(), "no block") {
-					_, err := qs.rpc.GetBlock(lastOrder + 1)
-					if err != nil {
-						log.Debugf("Request block id %d failed! %s", start, err.Error())
-						time.Sleep(time.Second * waitBlockTime)
-						continue
-					} else {
-						log.Debugf("no sys %d", start)
+				if strings.Contains(err.Error(), "no node") {
+					log.Debugf("no sys %d", start)
+					start++
+					continue
+				} else if strings.Contains(err.Error(), "no block") {
+					_, err = qs.rpc.GetBlock(lastOrder + 10)
+					if err == nil {
 						start++
-						continue
+					} else {
+						log.Debugf("Request block order %d failed! %s", lastOrder+1, err.Error())
 					}
+					log.Debugf("Request block id %d failed! %s", start, err.Error())
+					time.Sleep(time.Second * waitBlockTime)
+					continue
 				} else {
 					log.Debugf("Request block id %d failed! %s", start, err.Error())
 					time.Sleep(time.Second * waitBlockTime)
@@ -264,7 +267,7 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 				}
 			}
 			start++
-			if block.Order != 0 {
+			if block.Order != 0 && block.Order > lastOrder {
 				lastOrder = block.Order
 			}
 			qs.blockCh <- block
