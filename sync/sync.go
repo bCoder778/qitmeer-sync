@@ -219,15 +219,15 @@ func (qs *QitmeerSync) updateCoins() {
 func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 	defer group.Done()
 
-	for {
-		block0, err := qs.getBlockById(0)
-		if err != nil {
-			time.Sleep(time.Second * waitBlockTime)
-			continue
-		}
-		qs.storage.Set10GenesisUTXO(block0)
-		break
-	}
+	//for {
+	//	block0, err := qs.getBlockById(0)
+	//	if err != nil {
+	//		time.Sleep(time.Second * waitBlockTime)
+	//		continue
+	//	}
+	//	qs.storage.Set10GenesisUTXO(block0)
+	//	break
+	//}
 	start := qs.storage.LastId()
 	if start <= 2 {
 		start = 0
@@ -257,7 +257,6 @@ func (qs *QitmeerSync) requestBlock(group *sync.WaitGroup) {
 					} else {
 						log.Debugf("Request block order %d failed! %s", lastOrder+1, err.Error())
 					}
-					log.Debugf("Request block id %d failed! %s", start, err.Error())
 					time.Sleep(time.Second * waitBlockTime)
 					continue
 				} else {

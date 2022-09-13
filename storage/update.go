@@ -269,11 +269,14 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 			} else {
 				voutAddress = vout.ScriptPubKey.Addresses[0]
 			}
-			if vout.CoinID == "ETH" {
+			if vout.CoinID == "ETH" || vout.CoinID == "MEER Balance" {
 				voutEVMAddress, err = utils.PkAddressToEVMAddress(vout.ScriptPubKey.Addresses[0])
 				if err != nil {
 					return nil, fmt.Errorf("wrong address %s, %s", vout.ScriptPubKey.Addresses[0], err.Error())
 				}
+			}
+			if vout.CoinID == "MEER Asset" {
+				vout.CoinID = "MEER"
 			}
 			newVout := &types.Vout{
 				TxId:       rpcTx.Txid,

@@ -24,7 +24,7 @@ func ConnectMysql(conf *config.DB) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	//engine.ShowSQL(true)
+	// engine.ShowSQL(true)
 
 	if err = engine.Sync2(
 		new(types.Block),
@@ -34,6 +34,11 @@ func ConnectMysql(conf *config.DB) (*DB, error) {
 		new(types.Transfer),
 		new(types.Coin),
 	); err != nil {
+		return nil, err
+	}
+
+	_, err = engine.Exec(fmt.Sprintf("ALTER TABLE vin modify script_sig longtext;"))
+	if err != nil {
 		return nil, err
 	}
 
