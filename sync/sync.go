@@ -98,7 +98,7 @@ func (qs *QitmeerSync) syncBlock() {
 }
 
 func (qs *QitmeerSync) updateUnconfirmedBlock() {
-	ticker1 := time.NewTicker(time.Second * 60 * 1)
+	ticker1 := time.NewTicker(time.Second * 30)
 	ticker2 := time.NewTicker(time.Second * 60 * 5)
 	defer func() {
 		ticker1.Stop()
@@ -109,11 +109,21 @@ func (qs *QitmeerSync) updateUnconfirmedBlock() {
 	qs.initUncfmBlockCh()
 	go qs.saveUnconfirmedBlock()
 
+	go func() {
+		for {
+			select {
+			case <-ticker1.C:
+				log.Info("Start request unconfirmed block by count")
+				qs.requestUnconfirmedBlockByCount(10)
+			case <-qs.interupt:
+				log.Info("Shutdown update unconfirmed block")
+				return
+			}
+		}
+	}()
+
 	for {
 		select {
-		case <-ticker1.C:
-			log.Info("Start request unconfirmed block by count")
-			qs.requestUnconfirmedBlockByCount(30)
 		case <-ticker2.C:
 			log.Info("Start request unconfirmed block")
 			qs.requestUnconfirmedBlock()
@@ -122,6 +132,7 @@ func (qs *QitmeerSync) updateUnconfirmedBlock() {
 			return
 		}
 	}
+
 }
 
 func (qs *QitmeerSync) updateUnconfirmedTransaction() {

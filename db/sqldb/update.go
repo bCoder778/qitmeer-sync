@@ -33,6 +33,7 @@ func ConnectMysql(conf *config.DB) (*DB, error) {
 		new(types.Vout),
 		new(types.Transfer),
 		new(types.Coin),
+		new(types.Reorg),
 	); err != nil {
 		return nil, err
 	}
@@ -60,6 +61,7 @@ func ConnectSqlServer(conf *config.DB) (*DB, error) {
 		new(types.Vout),
 		new(types.Transfer),
 		new(types.Coin),
+		new(types.Reorg),
 	); err != nil {
 		return nil, err
 	}
@@ -77,6 +79,8 @@ func (d *DB) Clear() error {
 	d.engine.DropTables("vout")
 	d.engine.DropTables("transfer")
 	d.engine.DropTables("coin")
+	d.engine.DropTables("reorg")
+
 	return nil
 }
 
@@ -339,6 +343,20 @@ func updateBlock(sess *xorm.Session, block *types.Block) error {
 	if ok, err := sess.Where("hash = ?", block.Hash).Get(queryBlock); err != nil {
 		return fmt.Errorf("faild to seesion exist block, %s", err.Error())
 	} else if ok {
+		if queryBlock.Order != block.Order {
+			_, err := sess.Insert(&types.Reorg{
+				OldOrder: queryBlock.Order,
+				NewOrder: block.Order,
+				Hash:     block.Hash,
+				OldMiner: queryBlock.Address,
+				NewMiner: block.Address,
+				OldStat:  queryBlock.Stat,
+				NewStat:  block.Stat,
+			})
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+		}
 		if _, err := sess.Where("hash = ?", block.Hash).
 			Cols(`txvalid`, `confirmations`, `version`, `weight`, `height`, `tx_root`, `order`,
 				`transactions`, `state_root`, `bits`, `timestamp`, `parent_root`, `parents`, `children`,

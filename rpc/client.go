@@ -43,7 +43,7 @@ func (c *Client) TransactionStat(txid string, timestamp int64) stat.TxStat {
 			if tx.Confirmations >= stat.Tx_Confirmed_Value {
 				return stat.TX_Confirmed
 			}
-			if tx.Confirmations < 1 {
+			if tx.Confirmations < 5 {
 				notConfirmed = true
 			}
 			if tx.BlockHash != "" {

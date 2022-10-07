@@ -1,15 +1,15 @@
 [[rpcs]]
-host="http://203.86.236.20/mainnet"
-admin="admin"
-password="123"
+host="http://203.86.236.20:8131"
+admin="admin_qitmeer"
+password="6qFQw!N7JgE8D.R"
 [[rpcs]]
-host="http://203.86.236.20/mainnet"
-admin="qitmeer"
-password="123"
+host="http://203.86.236.20:8131"
+admin="admin_qitmeer"
+password="6qFQw!N7JgE8D.R"
 [[rpcs]]
-host="http://203.86.236.20/mainnet"
-admin="qitmeer"
-password="123"
+host="http://203.86.236.20:8131"
+admin="admin_qitmeer"
+password="6qFQw!N7JgE8D.R"
 
 
 [db]
@@ -17,7 +17,7 @@ password="123"
 dbtype="mysql"
 user="client"
 password="Qitmeer@user.client"
-address="203.86.236.20:3306"
+address="203.86.236.25:3306"
 dbname="mainnet"
 
 [log]

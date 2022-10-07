@@ -4,6 +4,17 @@ import (
 	"github.com/bCoder778/qitmeer-sync/verify/stat"
 )
 
+type Reorg struct {
+	Id       uint64         `xorm:"bigint autoincr pk" json:"id"`
+	OldOrder uint64         `xorm:"bigint"`
+	NewOrder uint64         `xorm:"bigint"`
+	Hash     string         `xorm:"varchar(64)"`
+	OldMiner string         `xorm:"varchar(65)"`
+	NewMiner string         `xorm:"varchar(65)"`
+	OldStat  stat.BlockStat `xorm:"int"`
+	NewStat  stat.BlockStat `xorm:"int"`
+}
+
 type Block struct {
 	Id            uint64         `xorm:"bigint pk" json:"id"`
 	Hash          string         `xorm:"varchar(64) index" json:"hash"`
