@@ -92,7 +92,7 @@ func (d *DB) UpdateBlockDatas(block *types.Block, txs []*types.Transaction, vins
 		return fmt.Errorf("failed to seesion begin, %s", err.Error())
 	}
 
-	if err := updateBlock(sess, block); err != nil {
+	if err := updateBlock(sess, block, txs); err != nil {
 		if errR := sess.Rollback(); errR != nil {
 			return fmt.Errorf("roll back failed! %s", errR.Error())
 		}
@@ -337,21 +337,26 @@ func updateTransfers(sess *xorm.Session, transfers []*types.Transfer) error {
 	return nil
 }
 
-func updateBlock(sess *xorm.Session, block *types.Block) error {
+func updateBlock(sess *xorm.Session, block *types.Block, txs []*types.Transaction) error {
 	// 更新block
 	queryBlock := &types.Block{}
 	if ok, err := sess.Where("hash = ?", block.Hash).Get(queryBlock); err != nil {
 		return fmt.Errorf("faild to seesion exist block, %s", err.Error())
 	} else if ok {
 		if queryBlock.Order != block.Order {
+			txIds := []string{}
+			for _, tx := range txs {
+				txIds = append(txIds, tx.TxId)
+			}
 			_, err := sess.Insert(&types.Reorg{
-				OldOrder: queryBlock.Order,
-				NewOrder: block.Order,
-				Hash:     block.Hash,
-				OldMiner: queryBlock.Address,
-				NewMiner: block.Address,
-				OldStat:  queryBlock.Stat,
-				NewStat:  block.Stat,
+				OldOrder:     queryBlock.Order,
+				NewOrder:     block.Order,
+				Hash:         block.Hash,
+				Transactions: txIds,
+				OldMiner:     queryBlock.Address,
+				NewMiner:     block.Address,
+				OldStat:      queryBlock.Stat,
+				NewStat:      block.Stat,
 			})
 			if err != nil {
 				fmt.Println(err.Error())
