@@ -8,12 +8,12 @@ type Reorg struct {
 	Id           uint64         `xorm:"bigint autoincr pk" json:"id"`
 	OldOrder     uint64         `xorm:"bigint"`
 	NewOrder     uint64         `xorm:"bigint"`
-	Transactions []string       `xorm:"json"`
 	Hash         string         `xorm:"varchar(64)"`
 	OldMiner     string         `xorm:"varchar(65)"`
 	NewMiner     string         `xorm:"varchar(65)"`
 	OldStat      stat.BlockStat `xorm:"int"`
 	NewStat      stat.BlockStat `xorm:"int"`
+	Transactions []string       `xorm:"json"`
 }
 
 type Block struct {

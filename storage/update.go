@@ -165,7 +165,7 @@ func (s *Storage) createTransactions(rpcTxs []rpc.Transaction, blockTime int64, 
 			if vin.Coinbase != "" {
 				address = "coinbase"
 				vinAddress = address
-			} else if vin.Txid != "0000000000000000000000000000000000000000000000000000000000000000" {
+			} else if vin.Txid != "0000000000000000000000000000000000000000000000000000000000000000" && vin.Txid != "" {
 				if vin.Type != "" {
 					newVin := &types.Vin{
 						TxId:    rpcTx.Txid,
