@@ -52,7 +52,7 @@ func (c *Client) TransactionStat(txid string, timestamp int64) stat.TxStat {
 		}
 	}
 	if !exist {
-		if time.Now().Unix()-timestamp > 60*60 {
+		if time.Now().Unix()-timestamp > 10*60 {
 			return stat.TX_Failed
 		}
 		return stat.TX_Unconfirmed
