@@ -109,7 +109,7 @@ func (s *Storage) crateBlock(rpcBlock *rpc.Block) *types.Block {
 		Height:        rpcBlock.Height,
 		TxRoot:        rpcBlock.TxRoot,
 		Order:         rpcBlock.Order,
-		EVMHeight:     rpcBlock.EVMHeight,
+		EvmHeight:     rpcBlock.EVMHeight,
 		Transactions:  len(rpcBlock.Transactions),
 		StateRoot:     rpcBlock.StateRoot,
 		Bits:          rpcBlock.Bits,
