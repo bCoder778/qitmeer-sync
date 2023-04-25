@@ -363,7 +363,7 @@ func updateBlock(sess *xorm.Session, block *types.Block, txs []*types.Transactio
 			}
 		}
 		if _, err := sess.Where("hash = ?", block.Hash).
-			Cols(`txvalid`, `confirmations`, `version`, `weight`, `height`, `tx_root`, `order`,
+			Cols(`txvalid`, `confirmations`, `version`, `weight`, `height`, `tx_root`, `order`, `evm_height`,
 				`transactions`, `state_root`, `bits`, `timestamp`, `parent_root`, `parents`, `children`,
 				`difficulty`, `pow_name`, `pow_type`, `peer_id`, `nonce`, `edge_bits`, `circle_nonces`, `address`,
 				`amount`, `color`, `stat`).Update(block); err != nil {

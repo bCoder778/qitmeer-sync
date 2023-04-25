@@ -24,13 +24,14 @@ type ISyncInfo interface {
 	UnconfirmedIdsByCount(count int) []uint64
 	LastUnconfirmedOrder() uint64
 	TransactionExist(txId string) bool
+	GetLastEVmHeightBlock() *types.Block
 }
 
 type IUpdate interface {
 	SaveBlock(block *rpc.Block) error
 	UpdateBlock(block *rpc.Block) error
 	SaveTransaction(tx *rpc.Transaction, order, height uint64, color int) error
-	UpdateTransactions(tx []rpc.Transaction, order uint64, hash string,  height uint64, color int) error
+	UpdateTransactions(tx []rpc.Transaction, order uint64, hash string, height uint64, color int) error
 	UpdateTransactionStat(txId string, confirmations uint64, stat stat.TxStat) error
 	UpdateCoins(coins []types.Coin)
 	Set10GenesisUTXO(rpcBlock *rpc.Block) error

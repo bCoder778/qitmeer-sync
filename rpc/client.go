@@ -74,6 +74,23 @@ func isNotExist(err error) bool {
 	return false
 }
 
+func (c *Client) StateRoot(h uint64) (*StateRoot, error) {
+	return c.stateRoot(h, c.main)
+}
+
+func (c *Client) stateRoot(h uint64, auth *config.Rpc) (*StateRoot, error) {
+	params := []interface{}{h, true}
+	resp := NewReqeust(params).SetMethod("getStateRoot").call(auth)
+	state := new(StateRoot)
+	if resp.Error != nil {
+		return state, errors.New(resp.Error.Message)
+	}
+	if err := json.Unmarshal(resp.Result, state); err != nil {
+		return state, err
+	}
+	return state, nil
+}
+
 func (c *Client) GetBlock(h uint64) (*Block, error) {
 	return c.getBlock(h, c.main)
 }

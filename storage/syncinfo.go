@@ -1,5 +1,11 @@
 package storage
 
+import "github.com/bCoder778/qitmeer-sync/storage/types"
+
+func (s *Storage) GetLastEVmHeightBlock() *types.Block {
+	return s.db.GetLastEVmHeightBlock()
+}
+
 func (s *Storage) LastOrder() uint64 {
 	order, _ := s.db.GetLastOrder()
 	return order
@@ -30,6 +36,6 @@ func (s *Storage) LastUnconfirmedOrder() uint64 {
 	return order
 }
 
-func (s *Storage)TransactionExist(txId string) bool{
+func (s *Storage) TransactionExist(txId string) bool {
 	return s.db.TransactionExist(txId)
 }

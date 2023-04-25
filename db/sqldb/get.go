@@ -7,6 +7,13 @@ import (
 	"github.com/bCoder778/qitmeer-sync/verify/stat"
 )
 
+func (d *DB) GetLastEVmHeightBlock() *types.Block {
+	block := &types.Block{}
+	d.engine.Table(new(types.Block)).Desc("evmHeight").Get(block)
+
+	return block
+}
+
 func (d *DB) GetTransaction(txId string, blockHash string) (*types.Transaction, error) {
 	tx := &types.Transaction{}
 	ok, err := d.engine.Table(new(types.Transaction)).Where("tx_id = ? and block_hash = ?", txId, blockHash).Get(tx)

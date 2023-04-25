@@ -11,6 +11,7 @@ type Block struct {
 	Hash          string        `json:"hash"`
 	Weight        uint64        `json:"weight"`
 	Height        uint64        `json:"height"`
+	EVMHeight     uint64        `json:"evmHeight"`
 	Txsvalid      bool          `json:"txsvalid"`
 	Confirmations uint64        `json:"confirmations"`
 	Version       uint32        `json:"version"`
@@ -26,6 +27,23 @@ type Block struct {
 	Children      []string      `json:"children"`
 	Pow           *Pow          `json:"pow"`
 	IsBlue        int           `json:"isblue"`
+}
+
+func (b *Block) HashEvmBlock() bool {
+	for _, tx := range b.Transactions {
+		for _, vin := range tx.Vin {
+			switch vin.Type {
+			case "TxTypeCrossChainVM":
+				return true
+			case "TxTypeCrossChainImport":
+				return true
+			case "TxTypeCrossChainExport":
+				return true
+
+			}
+		}
+	}
+	return false
 }
 
 type Pow struct {
@@ -50,7 +68,7 @@ func (b *Block) PeerId() string {
 	return ""
 }
 
-//区块中对应的每一个transaction
+// 区块中对应的每一个transaction
 type Transaction struct {
 	Hex           string    `json:"hex"`
 	Hexwit        string    `json:"hexwit"`
@@ -152,4 +170,13 @@ type PeerInfo struct {
 
 type NodeInfo struct {
 	GraphState GraphState `json:"graphstate"`
+}
+
+type StateRoot struct {
+	Hash         string `json:"Hash"`
+	Order        uint64 `json:"Order"`
+	Height       uint64 `json:"Height"`
+	Valid        bool   `json:"Valid"`
+	EVMStateRoot string `json:"EVMStateRoot"`
+	EVMHeight    uint64 `json:"EVMHeight"`
 }

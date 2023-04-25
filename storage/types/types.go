@@ -26,6 +26,7 @@ type Block struct {
 	Height        uint64         `xorm:"bigint index" json:"height"`
 	TxRoot        string         `xorm:"varchar(64)" json:"txroot"`
 	Order         uint64         `xorm:"bigint index" json:"order"`
+	EVMHeight     uint64         `xorm:"bigint" json:"evmHeight"`
 	Transactions  int            `xorm:"int" json:"transactions"`
 	StateRoot     string         `xorm:"varchar(64)" json:"stateroot"`
 	Bits          string         `xorm:"varchar(64)" json:"bits"`

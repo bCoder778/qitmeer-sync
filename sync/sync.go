@@ -489,6 +489,10 @@ func (qs *QitmeerSync) getBlockById(id uint64) (*rpc.Block, error) {
 	if err != nil {
 		return nil, err
 	}
+	if block.HashEvmBlock() && block.Order != 0 {
+		state, _ := qs.rpc.StateRoot(block.Order)
+		block.EVMHeight = state.EVMHeight
+	}
 	block.IsBlue = color
 	block.Id = id
 	return block, err
