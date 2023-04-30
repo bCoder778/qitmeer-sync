@@ -24,7 +24,7 @@ func ConnectMysql(conf *config.DB) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	// engine.ShowSQL(true)
+	//engine.ShowSQL(true)
 
 	if err = engine.Sync2(
 		new(types.Block),
@@ -362,11 +362,19 @@ func updateBlock(sess *xorm.Session, block *types.Block, txs []*types.Transactio
 				fmt.Println(err.Error())
 			}
 		}
-		if _, err := sess.Where("hash = ?", block.Hash).
-			Cols(`txvalid`, `confirmations`, `version`, `weight`, `height`, `tx_root`, `order`, `evm_height`,
+		cols := []string{`txvalid`, `confirmations`, `version`, `weight`, `height`, `tx_root`, `order`, `evm_height`,
+			`transactions`, `state_root`, `bits`, `timestamp`, `parent_root`, `parents`, `children`,
+			`difficulty`, `pow_name`, `pow_type`, `peer_id`, `nonce`, `edge_bits`, `circle_nonces`, `address`,
+			`amount`, `color`, `stat`}
+		if block.Order == 0 && block.Height != 0 {
+			cols = []string{`txvalid`, `version`, `weight`, `height`, `tx_root`, `order`, `evm_height`,
 				`transactions`, `state_root`, `bits`, `timestamp`, `parent_root`, `parents`, `children`,
 				`difficulty`, `pow_name`, `pow_type`, `peer_id`, `nonce`, `edge_bits`, `circle_nonces`, `address`,
-				`amount`, `color`, `stat`).Update(block); err != nil {
+				`amount`, `color`, `stat`}
+		}
+
+		if _, err := sess.Where("hash = ?", block.Hash).
+			Cols(cols...).Update(block); err != nil {
 			return err
 		}
 
@@ -432,7 +440,7 @@ func (d *DB) UpdateTransactionStat(txId string, confirmations uint64, txStat sta
 		return err
 	}
 	if txStat == stat.TX_Failed {
-		if _, err := sess.Where("spent_tx = ?", txId).
+		if _, err := sess.Table(new(types.Vout)).Where("spent_tx = ?", txId).
 			Cols("spent_tx", "spented").
 			Update(&types.Vout{SpentTx: "", Spented: false}); err != nil {
 			return err
