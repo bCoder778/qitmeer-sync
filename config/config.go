@@ -28,11 +28,18 @@ func LoadConfig() error {
 
 type Config struct {
 	Rpc       []*Rpc     `toml:"rpcs"`
+	Ws        *Ws        `toml:"ws"`
 	DB        *DB        `toml:"db"`
 	Log       *Log       `toml:"log"`
 	Email     *EMail     `toml:"email"`
 	Verify    *Verify    `toml:"verify"`
 	Resources *Resources `toml:"resources"`
+}
+
+type Ws struct {
+	Host string `toml:"host"`
+	User string `toml:"user"`
+	Pass string `toml:"pass"`
 }
 
 type Rpc struct {

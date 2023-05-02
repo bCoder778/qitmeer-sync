@@ -2,6 +2,8 @@ package rpc
 
 import (
 	"encoding/hex"
+	"fmt"
+	"github.com/bCoder778/qitmeer-sync/utils"
 	"regexp"
 	"time"
 )
@@ -27,6 +29,45 @@ type Block struct {
 	Children      []string      `json:"children"`
 	Pow           *Pow          `json:"pow"`
 	IsBlue        int           `json:"isblue"`
+}
+
+func (b *Block) BlockMiner() (string, uint64) {
+	if b.Transactions == nil {
+		return "", 0
+	}
+	for _, tx := range b.Transactions {
+		if tx.Vin != nil && len(tx.Vin) == 1 {
+			for _, vin := range tx.Vin {
+				if vin.Coinbase != "" && len(tx.Vout) != 0 {
+					addr, _, _, _ := GetVoutAddress(&tx.Vout[0])
+					return addr, tx.Vout[0].Amount
+				}
+			}
+		}
+	}
+	return "", 0
+}
+
+func GetVoutAddress(vout *Vout) (voutAddr string, voutPKAddress string, voutEVMAddress string, err error) {
+	if len(vout.ScriptPubKey.Addresses) == 0 {
+		return
+	}
+	if utils.IsPkAddress(vout.ScriptPubKey.Addresses[0]) {
+		voutAddr, err = utils.PkAddressToAddress(vout.ScriptPubKey.Addresses[0])
+		if err != nil {
+			err = fmt.Errorf("wrong address %s, %s", vout.ScriptPubKey.Addresses[0], err.Error())
+			return
+		}
+		voutPKAddress = vout.ScriptPubKey.Addresses[0]
+		voutEVMAddress, err = utils.PkAddressToEVMAddress(vout.ScriptPubKey.Addresses[0])
+		if err != nil {
+			err = fmt.Errorf("wrong address %s, %s", vout.ScriptPubKey.Addresses[0], err.Error())
+			return
+		}
+	} else {
+		voutAddr = vout.ScriptPubKey.Addresses[0]
+	}
+	return
 }
 
 func (b *Block) HashEvmBlock() bool {

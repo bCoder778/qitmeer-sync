@@ -22,8 +22,10 @@ type IUpdate interface {
 	UpdateTransactionDatas(txs []*types.Transaction, vins []*types.Vin, vouts []*types.Vout, spentedVouts []*types.Vout, transfers []*types.Transfer) error
 
 	UpdateBlock(block *types.Block) error
+	UpdateBlockStat(hash string, stat int)
 	UpdateTransactionStat(txId string, confirmations uint64, stat stat.TxStat) error
 	UpdateCoin(coins []types.Coin) error
+	InsertReorgV2(reorg *types.ReorgV2) error
 }
 
 type IGet interface {
@@ -44,6 +46,7 @@ type IQuery interface {
 	QueryMemTransaction() ([]types.Transaction, error)
 	QueryUnConfirmedOrders() ([]uint64, error)
 	QueryUnConfirmedIds() ([]uint64, error)
+	QueryUnConfirmedHashes() ([]string, error)
 	QueryUnConfirmedIdsByCount(count int) ([]uint64, error)
 	QueryTransactions(txId string) ([]types.Transaction, error)
 }

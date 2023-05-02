@@ -2,6 +2,7 @@ package types
 
 import (
 	"github.com/bCoder778/qitmeer-sync/verify/stat"
+	"time"
 )
 
 type Reorg struct {
@@ -14,6 +15,19 @@ type Reorg struct {
 	OldStat      stat.BlockStat `xorm:"int"`
 	NewStat      stat.BlockStat `xorm:"int"`
 	Transactions []string       `xorm:"json"`
+}
+
+type ReorgV2 struct {
+	Id            uint64    `xorm:"bigint autoincr pk" json:"id"`
+	Order         uint64    `xorm:"bigint"`
+	OldHash       string    `xorm:"varchar(64)"`
+	NewHash       string    `xorm:"varchar(64)"`
+	Confirmations int       `xorm:"int"`
+	OldMiner      string    `xorm:"varchar(65)"`
+	NewMiner      string    `xorm:"varchar(65)"`
+	EvmHeight     uint64    `xorm:"bigint"`
+	Timestamp     time.Time `xorm:"datetime"`
+	Stat          int       `xorm:"int"`
 }
 
 type Block struct {

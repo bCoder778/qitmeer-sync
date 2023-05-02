@@ -34,6 +34,7 @@ func ConnectMysql(conf *config.DB) (*DB, error) {
 		new(types.Transfer),
 		new(types.Coin),
 		new(types.Reorg),
+		new(types.ReorgV2),
 	); err != nil {
 		return nil, err
 	}
@@ -62,6 +63,7 @@ func ConnectSqlServer(conf *config.DB) (*DB, error) {
 		new(types.Transfer),
 		new(types.Coin),
 		new(types.Reorg),
+		new(types.ReorgV2),
 	); err != nil {
 		return nil, err
 	}
@@ -80,6 +82,7 @@ func (d *DB) Clear() error {
 	d.engine.DropTables("transfer")
 	d.engine.DropTables("coin")
 	d.engine.DropTables("reorg")
+	d.engine.DropTables("reorg_v2")
 
 	return nil
 }
@@ -450,4 +453,15 @@ func (d *DB) UpdateTransactionStat(txId string, confirmations uint64, txStat sta
 		return fmt.Errorf("failed to seesion coimmit, %s", err.Error())
 	}
 	return nil
+}
+
+func (d *DB) InsertReorgV2(reorg *types.ReorgV2) error {
+	if _, err := d.engine.Insert(reorg); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *DB) UpdateBlockStat(hash string, state int) {
+	d.engine.Table(new(types.Block)).Where("hash =?", hash).Cols("stat").Update(&types.Block{Stat: stat.BlockStat(state)});
 }

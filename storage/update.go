@@ -66,6 +66,12 @@ func (s *Storage) UpdateBlock(rpcBlock *rpc.Block) error {
 	return s.db.UpdateBlockDatas(block, txData.Transactions, txData.Vins, txData.Vouts, txData.SpentedVouts, txData.Transfers)
 }
 
+func (s *Storage) UpdateBlockStat(hash string, stat int) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.db.UpdateBlockStat(hash, stat)
+}
+
 func (s *Storage) SaveTransaction(rpcTx *rpc.Transaction, order, height uint64, color int) error {
 	txData, err := s.createTransactions([]rpc.Transaction{*rpcTx}, 0, order, height, color, rpcTx.BlockHash, true)
 	if err != nil {
@@ -391,6 +397,10 @@ func (s *Storage) BlockMiner(rpcBlock *rpc.Block) *types.Miner {
 
 func (s *Storage) UpdateCoins(coins []types.Coin) {
 	s.db.UpdateCoin(coins)
+}
+
+func (s *Storage) InsertReorgV2(reorg *types.ReorgV2) error {
+	return s.db.InsertReorgV2(reorg)
 }
 
 type AddressInOut struct {

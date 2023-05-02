@@ -26,6 +26,11 @@ func (s *Storage) UnconfirmedIds() []uint64 {
 	return ids
 }
 
+func (s *Storage) UnconfirmedHashes() []string {
+	ids, _ := s.db.QueryUnConfirmedHashes()
+	return ids
+}
+
 func (s *Storage) UnconfirmedIdsByCount(count int) []uint64 {
 	ids, _ := s.db.QueryUnConfirmedIdsByCount(count)
 	return ids

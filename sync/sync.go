@@ -1,11 +1,14 @@
 package sync
 
 import (
+	"github.com/Qitmeer/qng/common/hash"
+	"github.com/Qitmeer/qng/rpc/client"
 	"github.com/bCoder778/log"
 	"github.com/bCoder778/qitmeer-sync/config"
 	"github.com/bCoder778/qitmeer-sync/db"
 	"github.com/bCoder778/qitmeer-sync/rpc"
 	"github.com/bCoder778/qitmeer-sync/storage"
+	"github.com/bCoder778/qitmeer-sync/storage/types"
 	"github.com/bCoder778/qitmeer-sync/verify"
 	"github.com/bCoder778/qitmeer-sync/verify/stat"
 	"strings"
@@ -20,6 +23,7 @@ const (
 type QitmeerSync struct {
 	storage          IStorage
 	rpc              *rpc.Client
+	ws               *client.Client
 	mutex            sync.RWMutex
 	reBlockSync      chan struct{}
 	blockCh          chan *rpc.Block
@@ -36,13 +40,19 @@ func NewQitmeerSync() (*QitmeerSync, error) {
 		return nil, err
 	}
 	ve := verify.NewQitmeerVerfiy(config.Setting.Verify, db)
-	return &QitmeerSync{
+	qs := &QitmeerSync{
 		storage:     storage.NewStorage(db, ve),
 		rpc:         rpc.NewClient(config.Setting.Rpc),
 		reBlockSync: make(chan struct{}, 1),
 		interupt:    make(chan struct{}, 1),
 		wg:          &sync.WaitGroup{},
-	}, nil
+	}
+	ws, err := rpc.NewNotificationRpc(config.Setting.Ws, qs.handleReorgs)
+	if err != nil {
+		return nil, err
+	}
+	qs.ws = ws
+	return qs, nil
 }
 
 func (qs *QitmeerSync) Stop() {
@@ -98,8 +108,8 @@ func (qs *QitmeerSync) syncBlock() {
 }
 
 func (qs *QitmeerSync) updateUnconfirmedBlock() {
-	ticker1 := time.NewTicker(time.Second * 30)
-	ticker2 := time.NewTicker(time.Second * 60 * 5)
+	ticker1 := time.NewTicker(time.Second * 10)
+	ticker2 := time.NewTicker(time.Second * 60 * 3)
 	defer func() {
 		ticker1.Stop()
 		ticker2.Stop()
@@ -114,7 +124,7 @@ func (qs *QitmeerSync) updateUnconfirmedBlock() {
 			select {
 			case <-ticker1.C:
 				log.Info("Start request unconfirmed block by count")
-				qs.requestUnconfirmedBlockByCount(10)
+				qs.requestUnconfirmedBlockByCount(20)
 			case <-qs.interupt:
 				log.Info("Shutdown update unconfirmed block")
 				return
@@ -341,21 +351,22 @@ func (qs *QitmeerSync) requestUnconfirmedBlockByCount(count int) {
 }
 
 func (qs *QitmeerSync) requestUnconfirmedBlock() {
-	ids := qs.storage.UnconfirmedIds()
-	for _, id := range ids {
-		if id != 0 {
+	hashes := qs.storage.UnconfirmedHashes()
+	for _, hash := range hashes {
+		if hash != "" {
 			select {
 			case <-qs.interupt:
 				log.Info("Shutdown request unconfirmed block")
 				return
 			default:
-				block, err := qs.getBlockById(id)
+				block, err := qs.getBlockByHash(hash)
 				if err != nil {
 					if strings.Contains(err.Error(), "no node") || strings.Contains(err.Error(), "no block") {
-						log.Debugf("Request no node block id %d failed! %s", id, err.Error())
+						log.Debugf("Request no node block hash %s failed! %s", hash, err.Error())
+						qs.storage.UpdateBlockStat(hash, 0)
 						continue
 					}
-					log.Debugf("Request block id %d failed! %s", id, err.Error())
+					log.Debugf("Request block hash %s failed! %s", hash, err.Error())
 					time.Sleep(time.Second * waitBlockTime)
 					continue
 				}
@@ -452,6 +463,40 @@ func (qs *QitmeerSync) saveUnconfirmedTransaction() {
 	log.Infof("Save unconfirmed transaction end")
 }
 
+func (qs *QitmeerSync) handleReorgs(hash *hash.Hash, order int64, olds []*hash.Hash) {
+	for i, old := range olds {
+		oldBlock, err := qs.getBlockByHash(old.String())
+		stat := 0
+		oldMiner := ""
+		if err != nil {
+			if strings.Contains(err.Error(), "no node") || strings.Contains(err.Error(), "no block") {
+				stat = 1
+				log.Debugf("handleReorgs order=%d hash=%s oldHash=%s", order, hash.String(), old.String())
+			}
+		} else {
+			oldMiner, _ = oldBlock.BlockMiner()
+		}
+		newBlock, err := qs.getBlockByHash(hash.String())
+		if err != nil {
+			log.Errorf("handleReorgs %s", err.Error())
+			continue
+		}
+		newMiner, _ := newBlock.BlockMiner()
+
+		qs.storage.InsertReorgV2(&types.ReorgV2{
+			Order:         uint64(order),
+			OldHash:       old.String(),
+			NewHash:       hash.String(),
+			Confirmations: len(olds) - (i + 1),
+			OldMiner:      oldMiner,
+			NewMiner:      newMiner,
+			EvmHeight:     newBlock.EVMHeight,
+			Timestamp:     time.Now(),
+			Stat:          stat,
+		})
+	}
+}
+
 func (qs *QitmeerSync) initBlockCh() {
 	if qs.blockCh != nil {
 		close(qs.blockCh)
@@ -506,6 +551,10 @@ func (qs *QitmeerSync) getBlockByHash(hash string) (*rpc.Block, error) {
 	color, err := qs.rpc.IsBlue(block.Hash)
 	if err != nil {
 		return nil, err
+	}
+	if block.HashEvmBlock() && block.Order != 0 {
+		state, _ := qs.rpc.StateRoot(block.Order)
+		block.EVMHeight = state.EVMHeight
 	}
 	block.IsBlue = color
 	return block, err

@@ -13,9 +13,16 @@ func (d *DB) QueryUnConfirmedOrders() ([]uint64, error) {
 
 func (d *DB) QueryUnConfirmedIds() ([]uint64, error) {
 	ids := []uint64{}
-	err := d.engine.Table(new(types.Block)).Where("(stat = ? and block.order != 0) or (stat = 1 and block.order = 0 and color != 2)", stat.Block_Unconfirmed).Cols("id").Limit(50).Find(&ids)
+	err := d.engine.Table(new(types.Block)).Where("stat = ?", stat.Block_Unconfirmed).Cols("id").Limit(50).Find(&ids)
 
 	return ids, err
+}
+
+func (d *DB) QueryUnConfirmedHashes() ([]string, error) {
+	hashes := []string{}
+	err := d.engine.Table(new(types.Block)).Where("stat = ?", stat.Block_Unconfirmed).Cols("hash").Limit(50).Find(&hashes)
+
+	return hashes, err
 }
 
 func (d *DB) QueryUnConfirmedIdsByCount(count int) ([]uint64, error) {
